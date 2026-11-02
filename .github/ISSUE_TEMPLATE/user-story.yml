@@ -1,0 +1,42 @@
+name: User story
+description: A small story someone can claim and build. Claim it by assigning it to yourself.
+title: "CM-XX: "
+labels: ["story"]
+body:
+  - type: input
+    id: backlog
+    attributes:
+      label: Story ID and size
+      description: The story ID from the PRD (Part 3) and its size (S, M, L).
+      placeholder: "CM-07, size M"
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      description: One thing a user can do that they couldn't before.
+      value: "As a [persona], I want to [do something] so that I can [get some result]."
+    validations:
+      required: true
+  - type: textarea
+    id: scenarios
+    attributes:
+      label: Scenarios
+      description: Two to four Given-When-Then scenarios. At least one must be a case where things go wrong for the user.
+      value: |
+        1. **Given** …, **when** …, **then** …
+        2. **Given** …, **when** …, **then** …
+        3. **Goes wrong:** **given** …, **when** …, **then** …
+    validations:
+      required: true
+  - type: input
+    id: start
+    attributes:
+      label: Where to start in the code
+      placeholder: "web/app/cinematch.tsx (AccountControl)"
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Demo limitations, test data, or anything a builder should know.

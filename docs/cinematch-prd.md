@@ -1,194 +1,495 @@
 # CineMatch
 
-Expanded product requirements and style guide | Version 0.2 | October 26, 2026
+Product requirements and style guide | Version 0.4 | November 2, 2026
 
-**Help a tired viewer find one movie worth watching, without turning movie night into another browsing session.** CineMatch combines saved taste with a short questionnaire, explains its pick, and links out to a streaming service.
+**Help a tired viewer find one movie worth watching, without turning movie night into another browsing session.** CineMatch combines saved taste with a short quiz, explains its pick, and links out to a streaming service.
 
-## Purpose of this version
+## What this version covers
 
-Define a mobile-first interactive demo that responds to viewer choices using a curated sample movie catalog. It will walk through a realistic example before any public launch. This document specifies the product and visual direction; implementation is a later step.
+Version 0.4 is the build plan for the real CineMatch. It has 16 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
 
-## Audience and value
-
-The primary viewer is choosing a movie for themselves after a long day. Date night and other occasions can shape a recommendation, but multi-user accounts and shared matching are outside this demo. One person provides the answers.
-
-## Experience at a glance
-
-| Area | Intended experience |
+| Part | Contents |
 | --- | --- |
-| Home | Lead with **Find tonight's movie**. Offer Random, Trending, and Alerts below. |
-| Setup | Optional account creation, services, Letterboxd sample import, and up to five favorite movies. |
-| Find a movie | Three opening questions, up to four adaptive follow-ups, then one explained recommendation. |
-| Explore | A personalized random pick, five trending movies across services, and availability alerts. |
-| Remember | Account-based favorites and history; mark watched and rate movies from 1 to 5 stars. |
-
-## Platform and boundaries
-
-Design for phone screens first, with bottom navigation, then expand for desktop. Use the United States for the demo region. Accounts, imports, trending, scores, and availability use illustrative data; the Watch action opens the streaming service website in a new tab.
-
-*Basis: CineMatch Final.docx product charter and confirmed product-owner decisions. Later answers supersede the early PRD (v0.1), including optional onboarding and removal of free-text questionnaire input.*
+| 1. Product | What viewers can do, and the rules each feature follows |
+| 2. Technical foundation | Hosting, movie data, login, matching, and success metrics |
+| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 16 stories by sprint |
+| 4. Style guide | Colors, type, layout, and voice |
 
 ---
 
-# Start with taste
+# Part 1: Product
 
-All setup is optional. Viewers can skip it and try recommendations immediately.
+## Audience
 
-## Account and guest behavior
+One person choosing a movie for themselves after a long day. Occasions like date night can shape the pick, but one person answers the questions. The region is the United States.
 
-Guests can explore the main questionnaire, random recommendations, and Trending. Ask for an account when they attempt to save favorites, recommendation history, or a movie alert. Preserve their current movie and questionnaire answers through that transition.
+## Access
 
-Account creation and sign-in use sample behavior. Production authentication and cross-device storage are later work.
-
-## Optional onboarding sequence
-
-| Step | Behavior |
-| --- | --- |
-| Streaming services | Select any subscribed services, with Tubi offered as a free service. Allow Skip. |
-| Letterboxd import | Enter a username or profile link. Clearly identify this as a sample import; preview ratings, watched history, and watchlist before confirming. |
-| Five favorites | Search and select **up to five** all-time favorites. No ranking or requirement to fill all five slots. Allow Skip. |
-| Finish | Summarize selected services and taste inputs, then continue to Home or resume the guest's interrupted action. |
-
-## Services included in the demo
-
-**Netflix / Amazon Prime Video / Paramount+ / Disney+ / Hulu / Apple TV / HBO / Tubi**
-
-Verify exact service names, links, plans, and catalog coverage during implementation. Tubi is free with ads and does not count as a paid subscription for alert triggers.
-
-## How saved taste is used
-
-Favorites and imported ratings help rank candidates and may gently broaden flexible preferences. Watchlist movies receive priority when they fit. Exclude known watched titles by default; offer an **Include rewatches** toggle. Release era and watched status are separate choices.
-
-## After onboarding
-
-Services, favorites, and imports are configured during onboarding only; editing is deferred. History still supports watched status and personal ratings. Choose notification delivery when creating an alert.
-
----
-
-# Three questions to start
-
-One question per screen. Tap-based choices, visible progress, and a short adaptive flow.
-
-| Opening question | Choices and behavior |
-| --- | --- |
-| 1 / Occasion | Solo unwind, date night, background watch, movie night, or surprise me. Refine mood only when useful. |
-| 2 / Genre | Select up to three genres, or choose Anything. Example set: comedy, drama, action, adventure, thriller, mystery, horror, romance, sci-fi, fantasy, animation, documentary. |
-| 3 / Available time | Under 90 minutes, under 2 hours, under 2½ hours, or any length. |
-
-## Adaptive follow-up pool
-
-| Preference | Proposed choices to validate in the demo |
-| --- | --- |
-| Mood or intensity | Light and funny, comforting, emotional, suspenseful, or serious and thought-provoking. Use when occasion and genre leave uncertainty. |
-| Content rating | Choose acceptable US content ratings, or no preference. An explicit content limit is distinct from an audience score. |
-| Audience score | Optional minimum sample audience score on a 1-to-5-star scale. Include no minimum. |
-| Release era | Recent releases, last 10 years, older favorites, or any era. Exact year boundaries remain to be defined. |
-| Attention level | Background-friendly, easy to follow, or fully absorbing. |
-
-## Flow rules
-
-Ask **at most four** follow-ups from the pool, for a maximum of seven questions in the main flow. Do not ask every follow-up. Skip redundant questions and use saved context where it helps. The exact branching rules are a prototype design decision.
-
-Viewers can mark individual preferences **Must have**; unmarked preferences may flex. Service selection should be visible as a session preference with the same strictness control. Keep previous answers when going back. No free-text request field or chat in this version.
-
-*Suggested progress treatment: show the three core steps, then label any extra questions as optional refinements with a count. Do not promise a fixed total that unexpectedly grows.*
-
----
-
-# One pick with a reason
-
-Use the viewer's choices to filter and rank a curated sample catalog.
-
-## Recommendation behavior
-
-Apply preferences marked Must have first. Rank eligible movies using tonight's answers, favorites, imported ratings, and watchlist signals. Flexible preferences may broaden to improve the fit. Different choices should produce meaningfully different results, rather than a fixed scripted recommendation.
-
-When services are selected, favor available titles on those services; a service requirement marked Must have is strict. If services were skipped, recommend any suitable movie and show streaming or rental options. Availability is illustrative sample data for the United States.
-
-## Recommendation screen
-
-| Content | Actions |
-| --- | --- |
-| Poster, title, release year, runtime, content rating, sample audience score out of five, and short synopsis. | **Watch** opens the streaming service website in a new tab. |
-| A concise explanation connecting the movie to the viewer's occasion, preferences, and saved taste. | **Not this one** asks one follow-up before choosing a different title. |
-| Available services, with subscription, free-with-ads, and rental options distinguished. | **Notify me** is available when tracking future paid-subscription availability is relevant. |
-
-## If the pick misses
-
-Ask why: **seen it, wrong mood, dislike the genre, too intense, or something else**. Keep this tap-based. Preserve previous answers, use the response to adjust the next pick, and avoid immediately repeating a rejected movie. The rejection question is separate from the seven-question initial flow.
-
-## If no movie meets every requirement
-
-Before revealing a movie, explain which requirement the closest candidate would miss and ask whether the viewer wants to see it. Reveal the title only after they agree. If they decline, allow them to adjust a preference; never silently treat a Must have as flexible.
-
-## History and feedback
-
-Signed-in viewers can revisit recommendation history, mark a movie watched, and rate it from 1 to 5 stars. Keep personal ratings visibly separate from sample audience scores. A Watch click records a handoff, not proof that the movie was played or completed.
-
----
-
-# More ways to find a movie
-
-Supporting pages keep the single-pick experience easy to reach.
-
-## Random Recommendation
-
-Skip tonight's questionnaire and choose one movie using saved taste and selected services. Retain the watched-movie default and Include rewatches control. If no profile inputs exist, use a broad sample pick and show where it can be watched. Offer another random pick and the normal movie details.
-
-## Top 5 Trending
-
-Show exactly five sample trending movies **across services**, including titles outside the viewer's subscriptions. Display availability and allow movie details and Notify me. Label the list as sample trending data; it is not a live popularity ranking or a personalized list.
-
-## Alerts
-
-Provide a dedicated movie search on the Alerts page, plus Notify me from movie details. An alert tracks a specific movie becoming **included with a selected paid subscription**. Rental availability and Tubi availability do not trigger this alert type.
-
-On alert creation, let viewers choose **email, in-app notifications, or both**. Guests are asked to create an account while retaining the selected movie. If no paid subscriptions are selected, explain that one is needed to determine when an alert would apply.
-
-| Example state | What the viewer sees |
-| --- | --- |
-| Waiting | The tracked movie, selected paid services, delivery choice, and a clear waiting status. |
-| Available | The tracked movie, a sample notification that it is now included on a selected paid service, and a Watch action. |
-
-Show waiting and available examples directly. Do not add a simulation button, time jump, or actual delivery. Account-based alert saving is demonstrated; no background availability monitor or email system is implied.
+- **Logged-out visitors can open only the Tutorial tab and the login page.** Every other page sends them to login.
+- **Login is by emailed code.** There are no passwords (CM-03).
+- **The site is non-commercial** and runs on free services (Part 2).
 
 ## Navigation
 
-Home, Random, Trending, and Alerts are the primary destinations, with history accessible from Home or an account control. Use mobile bottom navigation with persistent text labels. Desktop may move these destinations to a header without changing their meaning.
-
-> **Keep the demo honest:** make sample availability, scores, trends, imports, and notification states recognizable as illustrative. A real service link must not imply a verified movie-level playback link or current availability.
-
----
-
-# A movie night example
-
-A tired viewer sets up their taste, rejects one pick, and finds a better match.
-
-| Beat | Example walkthrough |
+| Where | Contents |
 | --- | --- |
-| 1 / Set the foundation | A sample viewer signs in, chooses Netflix, Amazon Prime Video, and HBO, previews a Letterboxd sample import, and selects up to five favorites. |
-| 2 / Describe tonight | Choose Solo unwind, Comedy and Adventure, and Under 2 hours. Mark runtime Must have. A follow-up asks for Easy to follow. |
-| 3 / First recommendation | Show a matching sample title with its rationale and illustrative service availability. The viewer selects Not this one, then Seen it. |
-| 4 / Better match | Keep the existing answers and exclude the rejected title. Show a different suitable movie. Watch opens its service website in a new tab. |
-| 5 / Explore and return | Visit Random and Top 5 Trending; inspect waiting and available alerts. In history, demonstrate marking a movie watched and assigning a personal rating. |
+| Main tabs (bottom bar on phones, header on desktop) | Home, Random, Alerts, Tutorial |
+| Account menu | History, Settings, Delete account, Log out |
+| Logged out | Tutorial and Log in only |
 
-## What must work in the future prototype
+Home leads with **Find tonight's movie**.
 
-Skipping setup reaches recommendations. Guest saving requests an account without losing context. A Letterboxd preview requires confirmation. Question count stays within the cap. Choices affect results. Watched titles are excluded unless rewatches are enabled. A rejected pick leads to one follow-up and a different result. Any Must have mismatch requires agreement before revealing the closest match.
+## Tutorial
 
-Trending shows five movies across services. Alerts support movie search and delivery choice, with waiting and available examples. Watch opens a service website in a new tab. History supports watched status and 1-to-5-star personal ratings. Layouts work on phone and desktop.
+A guided walkthrough with sample movies, open to anyone (CM-05). It shows the quiz, a pick with its explanation, and "Not this one". Every sample movie is labeled as a sample. It ends with **Get started**, which goes to login. Trying to save anything inside the tutorial explains that it needs an account.
 
-## What to learn
+## Account setup
 
-Observe whether a viewer understands the questions, trusts the explanation, and chooses a movie without excessive retries. Retain the charter's **under-two-minute time-to-choice** goal as a hypothesis to test, not a promised outcome. Record first-pick acceptance, rejection reasons, and feedback on the flow.
+After first login, an optional two-step setup (CM-07):
 
-## Open decisions before production
+1. **Streaming services:** any of Netflix, Amazon Prime Video, Paramount+, Disney+, Hulu, Apple TV, HBO Max, and Tubi. Tubi is free with ads.
+2. **Favorites:** up to five all-time favorite movies, found with movie search (CM-06). No ranking, and no need to fill all five.
 
-Define the exact era boundaries, adaptive branching, audience-score source and thresholds, and real trending methodology. Verify service identities and links. Decide on movie and availability data providers, supported Letterboxd import method, production accounts and storage, and notification delivery. Live integrations, preference editing, group matching, voice, automatic playback, and a dedicated app are later work.
+Either step can be skipped. Both can be changed later in Settings (CM-13).
+
+## The quiz
+
+One question per screen, tap-based, with visible progress (CM-09).
+
+| Core question | Choices |
+| --- | --- |
+| 1 / Occasion | Solo unwind, date night, background watch, movie night, or surprise me |
+| 2 / Genre | Up to three of: comedy, drama, action, adventure, thriller, mystery, horror, romance, sci-fi, fantasy, animation, documentary. Or Anything. |
+| 3 / Available time | Under 90 minutes, under 2 hours, under 2½ hours, or any length |
+
+Then up to four follow-ups, chosen by these rules and asked in this order:
+
+| Follow-up | Choices | Ask when |
+| --- | --- | --- |
+| Mood | Light and funny, comforting, emotional, suspenseful, or serious and thought-provoking | Genre is Anything, more than one genre is picked, or the occasion is Surprise me |
+| Attention | Background-friendly, easy to follow, or fully absorbing | The occasion isn't Background watch |
+| Content rating | G, PG, PG-13, R (multiple allowed), or no preference | Date night, movie night, Anything, or horror or thriller picked |
+| Release era | Recent (last 2 years), last 10 years, older (more than 10 years), or any era | Genre is Anything, or the occasion is Surprise me or movie night |
+| Audience score | No minimum, 3+, 3.5+, or 4+ stars | The viewer has no saved favorites or ratings |
+
+Rules:
+
+- Never more than seven questions in total.
+- Progress shows the three core steps, then "Optional refinement 1 of N".
+- Any specific answer can be marked **Must have**; unmarked answers can flex.
+- The viewer's services appear on every question with their own Must-have toggle, plus an **Include rewatches** toggle. Watched movies are skipped by default.
+- Back keeps earlier answers. There's no free text.
+
+## The pick
+
+One movie at a time (CM-10). It shows:
+
+- poster, title, year, runtime, US rating, audience score out of 5, and synopsis
+- **Why this one:** a concrete explanation tied to the viewer's answers and favorites, never generic praise
+- where to watch, with subscription, free-with-ads, and rental options labeled, plus when availability was last checked
+- **Watch:** opens the streaming service's website in a new tab
+- **Not this one:** asks why (seen it, wrong mood, dislike the genre, too intense, or something else), keeps every answer, and finds a different movie. "Seen it" marks the movie watched. A rejected movie never comes back in the same session.
+
+**Must haves are never bent silently.** If nothing meets every Must have, the viewer is told what the closest movie would miss, without its title, and sees it only if they agree. Otherwise they go back to change a preference.
+
+## Random
+
+One movie with no questions (CM-11), drawn from the viewer's services and favorites. Watched movies are skipped unless Include rewatches is on. Offers **Another random pick**. Without setup, it picks well-rated, widely available movies and says setup would make it personal.
+
+## History and ratings
+
+Past picks, newest first, with what happened to each: shown, rejected and why, or Watch clicked (CM-12). Viewers can mark movies watched and rate them 1 to 5 stars. Personal ratings are always shown separately from audience scores.
+
+## Alerts
+
+Track a specific movie and hear when it becomes **included with one of the viewer's paid subscriptions** (CM-15):
+
+- Alerts are created from Alerts-page search or from a movie's details.
+- Delivery: email, in-app, or both.
+- Rentals and Tubi don't trigger alerts.
+- With no paid services saved, the viewer is told an alert needs one.
+- States: **Waiting** (shows the services being watched) and **Triggered** (shows which service now has it, when, and a Watch button).
+
+## Settings and deleting an account
+
+- **Settings** edits services and favorites (CM-13).
+- **Delete account** removes the account and everything saved with it, after a typed confirmation (CM-08).
 
 ---
 
-# Style guide: warm light with retro depth
+# Part 2: Technical foundation
+
+## Stack
+
+Everything runs on free tiers, which the non-commercial terms allow.
+
+| Need | Choice | Status |
+| --- | --- | --- |
+| Hosting | Vercel (free Hobby plan) | **Already live** |
+| Database and login | Supabase (free plan): Postgres, emailed-code login, and pgvector for similarity search | CM-01, CM-03 |
+| Movie data | TMDB API, free for non-commercial use | CM-02 |
+| Login and alert emails | Resend (free tier) | CM-03, CM-15 |
+| Scheduled jobs | GitHub Actions (free for public repositories) | CM-04, CM-14 |
+| Data science | Python with scikit-learn, run in GitHub Actions or on a team computer | CM-14, CM-16 |
+
+**Security minimum (built into CM-01 and CM-03):** each viewer can read and change only their own data, enforced by the database's row-level security. Secret keys live only in Vercel and GitHub settings, never in the code.
+
+## Movie data
+
+**Source:** TMDB, for movies, US ratings, keywords, audience scores, and US streaming availability. TMDB's availability data comes from JustWatch.
+
+**Terms that must be followed** (confirm the current terms during CM-02):
+
+- Show a notice that CineMatch uses the TMDB API but isn't endorsed or certified by TMDB, on an About page.
+- Credit JustWatch for streaming availability.
+- Free use is for non-commercial projects only.
+- TMDB restricts AI and machine-learning use of its data. Confirm that the similarity model (CM-14) is allowed before building it.
+
+**Catalog:** movies with at least 200 TMDB votes and a known US release, which is roughly 10,000 to 15,000 titles. The team keeps a local copy of the data.
+
+**Audience score:** TMDB's 0-to-10 vote average shown as 0 to 5 stars. Movies with fewer than 200 votes show "Not enough ratings yet".
+
+**Mood, attention, and intensity:** TMDB doesn't provide these, but the quiz needs them. CM-02 tags every movie using rules from its genres and keywords, and a person spot-checks a sample.
+
+**Freshness:** availability refreshes nightly (CM-04), and every movie shows when it was last checked.
+
+## Matching
+
+Matching is built in three steps:
+
+1. **Rules (CM-10).** Must haves filter the movies. Flexible answers, favorites, and services score them. Watched and rejected movies are excluded. This is the current demo's logic, running on real data.
+2. **Similarity (CM-14).** Each movie gets a "fingerprint" built from its genres, keywords, synopsis, runtime, era, and mood tags. Similar movies are grouped into clusters with plain-language labels, such as "cozy adventure comedies". A viewer's favorites, high ratings, and accepted picks point to the clusters they like, which supplies candidates for the rules to rank.
+3. **Statistics (CM-16).** Test whether similarity actually picks better movies than the rules alone. It's switched on only if it wins.
+
+## Success metrics
+
+These come from the history events saved by CM-10 and CM-12:
+
+- **Time to choice:** from starting the quiz to clicking Watch. The charter's goal of under two minutes is a hypothesis to test, not a promise.
+- **First-pick acceptance:** how often the first pick gets a Watch click.
+- **Rejections per session,** and the reasons given.
+- **Return visits** within 14 days.
+
+---
+
+# Part 3: Roadmap and stories
+
+## Roadmap
+
+Sprints run in dependency order: foundations first, features after. Stories in the same sprint can be built at the same time.
+
+| Sprint | ID | Story | Type | Size | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1: Data foundation | CM-01 | Database setup | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 1: Data foundation | CM-02 | Movie data | Foundation | L | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-03 | Login | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-05 | Tutorial | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 3: Getting started | CM-06 | Movie search and details | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 3: Getting started | CM-07 | Account setup | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 3: Getting started | CM-08 | Delete account | Feature | S | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-13 | Settings | Feature | S | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
+| 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
+| 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
+
+**Sizes:** S is about a day, M a few days, and L about a week.
+
+**Status:**
+
+| Status | Meaning |
+| --- | --- |
+| Not started | Nobody has claimed it |
+| In progress | Claimed, with work on a branch |
+| In review | Pull request open, waiting for a teammate's review |
+| Done | Merged to `main`, with every scenario passing |
+| Blocked | Can't continue; say why in the story |
+
+### Keeping the tracker current
+
+- **To claim a story,** put your name in **Assigned to**, set **Status** to In progress, and assign yourself the story's GitHub issue.
+- **Whenever you change a story** (its scenarios, assignee, or status), set **Last updated** to that day's date in YYYY-MM-DD format. A new story's Last updated is the date it was created.
+- **Change the roadmap row and the story's own tracking table together,** so they always match.
+
+## Story and pull request format
+
+These are the homework requirements every story and pull request follows.
+
+### Writing a story
+
+- **Keep it small:** one thing a user can do that they could not do before.
+- **Story:** As a [persona], I want to [do something] so that I can [get some result].
+- **Scenarios:** two to four Given-When-Then scenarios. At least one must be a case where things go wrong for the user.
+
+### Building a story
+
+1. Create a branch named `story/cm-XX-short-name` and build the story. AI tools can be used freely for the code.
+2. Run every scenario by hand against your change. For each one, record what you did, what you expected, and what happened.
+3. If a scenario fails, fix the code or fix the scenario, and say which.
+4. Open a pull request from your own GitHub account. The template in `.github/pull_request_template.md` pre-fills these sections:
+   - **Story:** As a [persona], I want to [do something] so that I can [get some result].
+   - **Scenarios:** your Given-When-Then scenarios.
+   - **What changed:** two or three plain sentences.
+   - **What the AI got wrong, and how I caught it:** be specific.
+   - **Scenario results:** pass or fail for each scenario, with a screenshot or a one-line note of what you saw.
+   - **How to check it:** steps a reviewer can follow to run the same scenarios.
+5. Request a review from a teammate.
+
+## Sprint 1: Data foundation
+
+### CM-01: Database setup
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | M | Nothing | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a CineMatch developer, I want to store movies and viewer data in a hosted database so that I can build features on real data in the live app.
+
+**Scenarios:**
+
+1. **Given** the Supabase project and tables exist, **when** the live Vercel app reads the movies table, **then** it gets rows back with no errors.
+2. **Given** test accounts A and B each have a saved favorite, **when** account A asks the database for favorites, **then** only A's favorite comes back.
+3. **Goes wrong:** **given** someone searches the GitHub repo and the app's page source for the database admin key, **when** they look, **then** it isn't there; only the public key appears.
+
+### CM-02: Movie data
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | L | CM-01 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to see real movies and where they stream in the US so that I can get picks I can actually watch.
+
+**Scenarios:**
+
+1. **Given** the import has run, **when** I look up a well-known movie in the database, **then** it has its title, year, runtime, US rating, synopsis, poster, genres, audience score, and which of the eight services carry it (subscription, free, or rent).
+2. **Given** the import has run, **when** I check any catalog movie, **then** it has a mood, attention level, and intensity tag, and a teammate's spot-check of 50 random movies finds at least 40 tagged sensibly.
+3. **Given** the import has finished, **when** I open the About page, **then** it shows the TMDB notice and JustWatch credit, and the team's local copy holds the same movies.
+4. **Goes wrong:** **given** the import stops halfway because of a TMDB error or rate limit, **when** it's run again, **then** it picks up where it stopped without creating duplicate movies.
+
+## Sprint 2: Access
+
+### CM-03: Login
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | M | CM-01 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to log in with a code emailed to me so that I can use CineMatch without creating a password.
+
+**Scenarios:**
+
+1. **Given** I'm logged out, **when** I enter my email and then the 6-digit code from the email, **then** I'm logged in and land on Home.
+2. **Given** I logged in yesterday, **when** I return today on the same device, **then** I'm still logged in.
+3. **Goes wrong:** **given** I requested a code, **when** I enter a wrong code or one more than 10 minutes old, **then** I see "That code didn't work" and stay logged out.
+4. **Goes wrong:** **given** I'm logged out, **when** I go to any page other than Tutorial, such as `/alerts`, **then** I'm sent to the login page.
+
+### CM-04: Nightly data refresh
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | M | CM-02 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to see up-to-date streaming availability so that I can trust Watch to send me to a service that still has the movie.
+
+**Scenarios:**
+
+1. **Given** a movie left Netflix since yesterday, **when** the nightly refresh runs, **then** the movie no longer shows Netflix, and the change is recorded with its date.
+2. **Given** the refresh ran last night, **when** I view any movie, **then** I see "Availability checked" with last night's date.
+3. **Goes wrong:** **given** last night's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with a notification, and tonight's run catches up.
+
+### CM-05: Tutorial
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | M | CM-03, for the login hand-off | Unassigned | 2026-11-02 | Not started |
+
+The tutorial reuses the current demo and its sample movies.
+
+**Story:** As a first-time visitor, I want to try CineMatch with sample movies before logging in so that I can see how it works before giving my email.
+
+**Scenarios:**
+
+1. **Given** I'm logged out, **when** I open the Tutorial tab, **then** I can go through the quiz, see a pick with its explanation, and use "Not this one", all without logging in.
+2. **Given** I'm in the tutorial, **when** I look at any movie, **then** it's clearly labeled as a sample, not real availability.
+3. **Given** I finish the tutorial, **when** I choose Get started, **then** I go to the login page.
+4. **Goes wrong:** **given** I'm in the tutorial, **when** I try to save a pick or create an alert, **then** I'm told that needs an account and offered login, and nothing is saved.
+
+## Sprint 3: Getting started
+
+### CM-06: Movie search and details
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | M | CM-02, CM-03 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to search for a movie and open its details so that I can choose favorites and track movies.
+
+**Scenarios:**
+
+1. **Given** I'm logged in, **when** I type part of a title, **then** matching movies appear with their years within a second.
+2. **Given** search results are showing, **when** I open one, **then** I see its poster, year, runtime, rating, audience score, synopsis, and where to watch.
+3. **Goes wrong:** **given** I misspell a title by a letter, **when** I search, **then** the right movie still appears. Typing nonsense shows "No movies match".
+
+### CM-07: Account setup
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | M | CM-03, CM-06 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a new viewer, I want to pick my streaming services and up to five favorite movies so that I can get picks that fit what I have and what I like.
+
+**Scenarios:**
+
+1. **Given** it's my first login, **when** I pick Netflix, HBO Max, and three favorites and finish, **then** I see a summary, and everything is still there after I log out and back in.
+2. **Given** I've picked five favorites, **when** I try to add a sixth, **then** I can't, and I see "5 of 5 picked".
+3. **Goes wrong:** **given** it's my first login, **when** I skip both steps, **then** I land on Home and can still take the quiz, and picks show every way to watch.
+
+### CM-08: Delete account
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | S | CM-03 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer who's leaving, I want to delete my account and everything saved with it so that I can be sure my data is gone.
+
+**Scenarios:**
+
+1. **Given** I'm logged in with favorites, history, and an alert, **when** I choose Delete account and confirm, **then** I'm logged out, and logging in again with the same email starts a brand-new, empty account.
+2. **Goes wrong:** **given** I opened Delete account by mistake, **when** I choose Cancel, **then** nothing is deleted.
+3. **Goes wrong:** **given** the confirmation asks me to type DELETE, **when** I type anything else, **then** the Delete button stays disabled.
+
+## Sprint 4: The pick
+
+### CM-09: The quiz
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | M | CM-02, CM-07 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to answer a few quick questions about tonight so that I can get a pick that fits my mood and my time.
+
+**Scenarios:**
+
+1. **Given** I'm logged in, **when** I choose Solo unwind, Comedy and Adventure, and Under 2 hours, **then** I get at most four follow-ups and never more than seven questions in total.
+2. **Given** I'm on the third question, **when** I go Back, **then** my earlier answers are still selected.
+3. **Given** I picked a specific answer, **when** I turn on Must have, **then** it shows as on. For Anything, the toggle is disabled.
+4. **Goes wrong:** **given** I haven't picked an answer, **when** I try to continue, **then** Next is disabled.
+
+### CM-10: Recommendation and "Not this one"
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | L | CM-09 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to get one movie with a clear reason, and a better one if I say no, so that I can stop browsing and start watching.
+
+**Scenarios:**
+
+1. **Given** I finished the quiz, **when** my pick appears, **then** it shows the movie's details, a "Why this one" that names my answers, and where to watch. Watch opens the service's website in a new tab.
+2. **Given** I have a pick, **when** I choose Not this one and then Seen it, **then** a different movie appears with my answers kept, and the first movie is marked watched and never shown again that session.
+3. **Given** I take the quiz twice with different answers (Horror, under 90 minutes, then Documentary, any length), **when** each pick appears, **then** the two picks are different movies.
+4. **Goes wrong:** **given** no movie meets all my Must haves, **when** the pick would appear, **then** I'm told what the closest movie misses without seeing its title, and I see it only if I agree.
+
+### CM-11: Random pick
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | S | CM-07 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer too tired for questions, I want to get one random movie that fits my taste so that I can start watching right away.
+
+**Scenarios:**
+
+1. **Given** I saved services and favorites, **when** I open Random, **then** I get one movie available on my services, with Another random pick.
+2. **Given** I've marked movies watched, **when** I get random picks, **then** watched movies are skipped unless Include rewatches is on.
+3. **Goes wrong:** **given** I skipped setup, **when** I open Random, **then** I get a well-rated, widely available movie and a note that setup would make it personal.
+
+## Sprint 5: Remember and learn
+
+### CM-12: History and ratings
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | M | CM-10 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to see my past picks, mark them watched, and rate them so that I can find last week's movie and teach CineMatch my taste.
+
+**Scenarios:**
+
+1. **Given** I got two picks yesterday, **when** I open History, **then** both appear, newest first, with what I did with each: shown, rejected and why, or Watch clicked.
+2. **Given** I'm in History, **when** I rate a movie 4 stars, **then** my rating shows separately from the audience score and is still there after I log in again.
+3. **Goes wrong:** **given** my account is brand new, **when** I open History, **then** I see "Nothing here yet" with a link to the quiz.
+
+### CM-13: Settings
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | S | CM-07 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer whose subscriptions changed, I want to edit my services and favorites so that I can keep my picks accurate.
+
+**Scenarios:**
+
+1. **Given** I saved Netflix and Hulu, **when** I turn off Hulu, turn on HBO Max, and save in Settings, **then** the next quiz shows Netflix and HBO Max as my services.
+2. **Given** I have favorites, **when** I swap one for another and save, **then** the change is still there after I log in again.
+3. **Goes wrong:** **given** I have a waiting alert, **when** I remove every paid service and save, **then** I'm warned that alerts need a paid service, and my alert is kept.
+
+### CM-14: Similarity model
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | L | CM-02 and confirmed TMDB terms | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to get picks similar to the movies I love so that I can enjoy my first pick more often.
+
+**Scenarios:**
+
+1. **Given** the catalog is loaded, **when** the model runs, **then** every movie has a fingerprint and belongs to a cluster with a plain-language label.
+2. **Given** the model has run, **when** a teammate checks the five nearest movies for 10 well-known films, **then** they judge most of them similar: at least 7 of the 10 sets.
+3. **Goes wrong:** **given** a movie has no keywords or synopsis, **when** the model runs, **then** that movie still gets a fingerprint from its genres, runtime, and year, and the run doesn't crash.
+
+## Sprint 6: Alerts and proof
+
+### CM-15: Alerts
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | L | CM-04, CM-06, CM-07 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a viewer, I want to track a movie and hear when it arrives on a service I pay for so that I can watch it as soon as it's included.
+
+**Scenarios:**
+
+1. **Given** I subscribe to Netflix, **when** I find a movie that isn't on Netflix and create an alert by email, **then** it shows as Waiting, with my paid services and delivery choice.
+2. **Given** I have a waiting alert, **when** the nightly refresh records the movie joining Netflix as part of the subscription, **then** I get exactly one email and one in-app notice with a Watch button, and the alert shows Triggered.
+3. **Goes wrong:** **given** I have a waiting alert, **when** the movie appears only as a rental or on Tubi, **then** no alert fires.
+4. **Goes wrong:** **given** I have no paid services saved, **when** I try to create an alert, **then** I'm told an alert needs a paid subscription.
+
+### CM-16: Similarity testing statistics
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | M | CM-10, CM-12, CM-14 | Unassigned | 2026-11-02 | Not started |
+
+**Story:** As a CineMatch team member, I want to measure whether similarity matching beats the plain rules so that I can switch it on only if it helps viewers.
+
+Test data comes from viewers' favorites and personal ratings (CM-07, CM-12), plus test viewers the team builds by hand.
+
+**Scenarios:**
+
+1. **Given** test viewers with favorites and ratings, **when** we hide some of their 4- and 5-star movies and run both versions, **then** a report compares how often each version ranks a hidden movie in its top 10, plus how varied the picks are.
+2. **Given** the similarity version ranks hidden movies higher without making picks less varied, **when** the team reviews the report, **then** similarity is switched on. Otherwise it stays off, and the report says why.
+3. **Goes wrong:** **given** fewer than 20 test viewers, **when** the report runs, **then** it says the sample is too small to trust, instead of naming a winner.
+
+---
+
+# Part 4: Style guide
+
+## Warm light with retro depth
 
 Subtle 80s movie night, with creamsicle orange and a grounded five-color palette.
 
@@ -200,37 +501,37 @@ Subtle 80s movie night, with creamsicle orange and a grounded five-color palette
 | **Warm ivory** `#FFF8EE` | Main screen and card background. Keep most surfaces light and calm. |
 | **Muted brick red** `#B9574F` | Restrained decorative emphasis and notification accents. Pair notification color with a readable label or icon. |
 
-## Color and readability
+### Color and readability
 
 Use teal or plum for small text on ivory, and ivory text on teal or plum. Teal on creamsicle also gives strong contrast. Brick red and ivory are approximately **4.39:1**; avoid this pairing for small text or normal-size button labels. Keep primary actions teal with ivory labels. Red is an accent, not the main text color.
 
-## Visual character
+### Visual character
 
-Use clean ivory screens, rounded shapes, and occasional retro ticket or VHS-label details. Reference the warmth and adventure of 80s movie night through typography and small graphic touches. Avoid prominent neon, distressed textures, heavy film grain, or recreating recognizable franchise branding.
+Use clean ivory screens, rounded shapes, and occasional retro ticket or VHS-label details. Reference the warmth and adventure of 80s movie night through typography and small graphic touches. Avoid prominent neon, distressed textures, heavy film grain, or recreating recognizable franchise branding. Real posters sit inside the same rounded card treatment.
 
-*Suggested balance: ivory carries the screens, teal carries structure, creamsicle carries selection, plum adds depth, and brick red appears sparingly. Keep the same color meanings across onboarding, recommendations, and alerts.*
+*Suggested balance: ivory carries the screens, teal carries structure, creamsicle carries selection, plum adds depth, and brick red appears sparingly. Keep the same color meanings across setup, recommendations, and alerts.*
 
 ## Type and interaction
 
 Bree Serif headings. DM Sans for body text, navigation, questions, and controls.
 
-| Typography role | Proposed specification |
+| Typography role | Specification |
 | --- | --- |
-| Brand and display | **Bree Serif Regular 400**. Use for CineMatch and selected page headings. Suggested mobile display: 28-32 px; desktop: 36-40 px. |
+| Brand and display | **Bree Serif Regular 400**. Use for CineMatch and selected page headings. Mobile display: 28-32 px; desktop: 36-40 px. |
 | Section headings | Bree Serif Regular 400 at 22-24 px, or DM Sans Medium 500 for compact functional sections. |
-| Body and questions | **DM Sans Regular 400**, 16 px body and 18-20 px main questions. Use generous line spacing, about 1.5 for paragraphs. |
+| Body and questions | **DM Sans Regular 400**, 16 px body and 18-20 px main questions. Line spacing about 1.5 for paragraphs. |
 | Buttons and navigation | DM Sans Medium 500, 14-16 px. Sentence case, brief wording, persistent labels. |
-| Metadata | DM Sans Regular 400, 13-14 px. Keep runtime, rating, year, service, and sample-data labels legible. |
+| Metadata | DM Sans Regular 400, 13-14 px. Keep runtime, rating, year, service, and data-source labels legible. |
 
-## Layout and controls
+### Layout and controls
 
-Start with a single-column phone layout and a consistent spacing rhythm: 8, 16, 24, and 32 px. Suggested corners: 12-16 px for cards, pill shapes for answers. Make tap targets about 44 px or larger. Expand desktop layouts while preserving the questionnaire's one-question-at-a-time focus.
+Start with a single-column phone layout and a consistent spacing rhythm: 8, 16, 24, and 32 px. Corners: 12-16 px for cards, pill shapes for answers. Tap targets about 44 px or larger. Expand desktop layouts while preserving the quiz's one-question-at-a-time focus.
 
 Use selected answer chips with creamsicle fill, teal text, and a visible check or outline. Give Must have a labeled toggle. Show selected, loading, empty, and error states in words as well as color. Keep keyboard focus visible and respect reduced-motion preferences.
 
-## Voice
+### Voice
 
-Write like a playful video-store clerk: friendly, concise, a little witty, and happy to make a choice. Keep jokes out of errors, availability limits, and important explanations. Explain each recommendation in concrete terms instead of giving generic praise.
+Write like a playful video-store clerk: friendly, concise, a little witty, and happy to make a choice. Keep jokes out of errors, availability limits, account messages, and important explanations. Explain each recommendation in concrete terms instead of giving generic praise.
 
 | Moment | Example copy |
 | --- | --- |

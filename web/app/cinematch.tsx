@@ -11,7 +11,7 @@ import {
   WatchLink, inputClass,
 } from "./ui";
 
-type View = "home" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history";
+type View = "home" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history" | "delete";
 type OnboardStep = "account" | "services" | "letterboxd" | "favorites" | "finish";
 type Pending = { kind: "alert"; movieId: string } | { kind: "save-pick" };
 type Delivery = "email" | "inapp" | "both";
@@ -70,6 +70,11 @@ export default function CineMatch() {
   const [randomPersonal, setRandomPersonal] = useState(false);
   const [draftAlert, setDraftAlert] = useState<{ movieId: string; delivery: Delivery } | null>(null);
 
+  // Delete account
+  const [deleteReturn, setDeleteReturn] = useState<View>("home");
+  const [deleteText, setDeleteText] = useState("");
+  const [accountDeleted, setAccountDeleted] = useState(false);
+
   const taste: Taste = useMemo(
     () => ({
       services,
@@ -102,6 +107,7 @@ export default function CineMatch() {
 
   function signIn() {
     setUser(DEMO_EMAIL);
+    setAccountDeleted(false);
     if (view === "account") {
       if (onboarded) resume();
       else {
@@ -120,6 +126,46 @@ export default function CineMatch() {
       go("alerts");
     } else if (p?.kind === "save-pick") go("pick");
     else go("home");
+  }
+
+  function openDeleteAccount() {
+    setDeleteReturn(view === "delete" ? "home" : view);
+    setDeleteText("");
+    go("delete");
+  }
+
+  function cancelDeleteAccount() {
+    setDeleteText("");
+    go(deleteReturn);
+  }
+
+  // Wipes everything tied to the account so the same email starts fresh next time.
+  function deleteAccount() {
+    if (deleteText.trim() !== "DELETE") return;
+    setUser(null);
+    setOnboarded(false);
+    setOnboardStep("account");
+    setServices([]);
+    setImported(null);
+    setFavorites([]);
+    setMarkedWatched([]);
+    setMyRatings({});
+    setLog([]);
+    setAlerts([]);
+    setPending(null);
+    setDraftAlert(null);
+    setRandomId(null);
+    setRandomPersonal(false);
+    setIncludeRewatches(false);
+    setAnswers({});
+    setMust({});
+    setStep(0);
+    setExclude([]);
+    setAdjustments(NO_ADJUSTMENTS);
+    setResult(null);
+    setDeleteText("");
+    setAccountDeleted(true);
+    go("home");
   }
 
   // ----- Questionnaire -----
@@ -244,13 +290,19 @@ export default function CineMatch() {
               </button>
             ))}
           </nav>
-          <AccountControl user={user} onSignIn={() => { setPending(null); go("account"); }} onHistory={() => go("history")} onSignOut={() => { setUser(null); go("home"); }} />
+          <AccountControl user={user} onSignIn={() => { setPending(null); go("account"); }} onHistory={() => go("history")} onSignOut={() => { setUser(null); go("home"); }} onDelete={openDeleteAccount} />
         </div>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8">
         {view === "home" && (
           <div className="space-y-8">
+            {accountDeleted && (
+              <div role="status" className="flex items-start justify-between gap-3 rounded-2xl border border-brick/30 bg-sand p-4">
+                <p>Your account and everything saved with it has been deleted. Signing in with the same email starts a brand-new account.</p>
+                <TextButton onClick={() => setAccountDeleted(false)}>Dismiss</TextButton>
+              </div>
+            )}
             <section className="rounded-3xl bg-teal p-6 text-ivory md:p-10">
               <p className="text-xs font-medium uppercase tracking-widest text-cream">Tonight at the counter</p>
               <h1 className="mt-2 font-display text-[32px] leading-tight md:text-[40px]">One movie worth watching. No endless scrolling.</h1>
@@ -543,6 +595,40 @@ export default function CineMatch() {
           />
         )}
 
+        {view === "delete" && user && (
+          <div className="mx-auto max-w-lg">
+            <Heading eyebrow="Account" title="Delete your account?" subtitle={`This permanently removes ${user} and everything saved with it. It can't be undone.`} />
+            <Panel className="space-y-4">
+              <div>
+                <p className="font-medium">What gets deleted</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-[15px]">
+                  <li>{services.length} streaming {services.length === 1 ? "service" : "services"}</li>
+                  <li>{favorites.length} {favorites.length === 1 ? "favorite" : "favorites"}{imported ? " and your Letterboxd import" : ""}</li>
+                  <li>{log.length} history {log.length === 1 ? "entry" : "entries"} and {Object.keys(myRatings).length} of your ratings</li>
+                  <li>{alerts.length} {alerts.length === 1 ? "alert" : "alerts"}</li>
+                </ul>
+              </div>
+              <label className="block">
+                <span className="text-[15px]">Type <strong>DELETE</strong> to confirm</span>
+                <input
+                  className={`${inputClass} mt-2`}
+                  value={deleteText}
+                  onChange={(e) => setDeleteText(e.target.value)}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  aria-describedby="delete-help"
+                />
+              </label>
+              <p id="delete-help" className="text-[13px] text-plum">The Delete button turns on only when the box says DELETE, in capitals.</p>
+              <div className="flex flex-wrap gap-2">
+                <PrimaryButton className="bg-brick! hover:bg-brick/90!" disabled={deleteText.trim() !== "DELETE"} onClick={deleteAccount}>Delete account</PrimaryButton>
+                <SecondaryButton onClick={cancelDeleteAccount}>Cancel</SecondaryButton>
+              </div>
+            </Panel>
+          </div>
+        )}
+
         {view === "history" && (
           <div>
             <Heading eyebrow="History" title="Your movies" subtitle="Recommendations, Watch handoffs, and your own ratings." />
@@ -602,7 +688,7 @@ export default function CineMatch() {
 
 // ---------- Pieces ----------
 
-function AccountControl({ user, onSignIn, onHistory, onSignOut }: { user: string | null; onSignIn: () => void; onHistory: () => void; onSignOut: () => void }) {
+function AccountControl({ user, onSignIn, onHistory, onSignOut, onDelete }: { user: string | null; onSignIn: () => void; onHistory: () => void; onSignOut: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   if (!user) return <SecondaryButton onClick={onSignIn}>Sign in</SecondaryButton>;
   return (
@@ -621,6 +707,7 @@ function AccountControl({ user, onSignIn, onHistory, onSignOut }: { user: string
           <p className="px-3 py-2 text-[13px] text-plum">{user} (sample)</p>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onHistory(); }}>History</button>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onSignOut(); }}>Sign out</button>
+          <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left text-brick hover:bg-sand" onClick={() => { setOpen(false); onDelete(); }}>Delete account</button>
         </div>
       )}
     </div>

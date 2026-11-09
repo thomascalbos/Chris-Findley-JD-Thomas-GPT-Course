@@ -192,7 +192,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
-| 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-08 | In review |
+| 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
 | 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-09 | Not started |
 | 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
@@ -433,7 +433,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | S | CM-07 | thomascalbos | 2026-11-08 | In review |
+| Feature | S | CM-07 | thomascalbos | 2026-11-09 | Done |
 
 **Story:** As a viewer whose subscriptions changed, I want to edit my streaming services so that I can keep my picks accurate.
 

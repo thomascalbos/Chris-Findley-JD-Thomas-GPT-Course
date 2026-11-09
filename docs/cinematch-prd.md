@@ -181,7 +181,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | Sprint | ID | Story | Type | Size | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-08 | In progress |
-| 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-08 | In progress |
+| 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | In review |
 | 2: Access | CM-03 | Login | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-05 | Tutorial | Feature | M | Unassigned | 2026-11-02 | Not started |
@@ -259,7 +259,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | L | CM-01 | Chris | 2026-11-08 | In progress |
+| Foundation | L | CM-01 | Chris | 2026-11-09 | In review |
 
 **Story:** As a viewer, I want to see real movies and where they stream in the US so that I can get picks I can actually watch.
 

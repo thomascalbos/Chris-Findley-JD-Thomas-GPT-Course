@@ -50,7 +50,7 @@ After first login, an optional two-step setup (CM-07):
 1. **Streaming services:** any of Netflix, Amazon Prime Video, Paramount+, Disney+, Hulu, Apple TV, HBO Max, and Tubi. Tubi is free with ads.
 2. **Favorites:** up to five all-time favorite movies, found with movie search (CM-06). No ranking, and no need to fill all five.
 
-Either step can be skipped. Both can be changed later in Settings (CM-13).
+Either step can be skipped. Services can be changed later in Settings (CM-13); editing favorites follows in CM-17.
 
 ## The quiz
 
@@ -112,7 +112,7 @@ Track a specific movie and hear when it becomes **included with one of the viewe
 
 ## Settings and deleting an account
 
-- **Settings** edits services and favorites (CM-13).
+- **Settings** edits streaming services (CM-13). Editing favorites and keeping settings across sessions follow in CM-17.
 - **Delete account** removes the account and everything saved with it, after a typed confirmation (CM-08).
 
 ---
@@ -192,7 +192,8 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
-| 5: Remember and learn | CM-13 | Settings | Feature | S | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-08 | In review |
+| 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-09 | Not started |
 | 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
@@ -432,14 +433,30 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | S | CM-07 | Unassigned | 2026-11-02 | Not started |
+| Feature | S | CM-07 | thomascalbos | 2026-11-08 | In review |
 
-**Story:** As a viewer whose subscriptions changed, I want to edit my services and favorites so that I can keep my picks accurate.
+**Story:** As a viewer whose subscriptions changed, I want to edit my streaming services so that I can keep my picks accurate.
 
 **Scenarios:**
 
 1. **Given** I saved Netflix and Hulu, **when** I turn off Hulu, turn on HBO Max, and save in Settings, **then** the next quiz shows Netflix and HBO Max as my services.
-2. **Given** I have favorites, **when** I swap one for another and save, **then** the change is still there after I log in again.
+2. **Given** I saved Paramount+, **when** I turn it off in Settings and leave without saving, **then** Paramount+ is still one of my services.
+3. **Goes wrong:** **given** I saved no paid services, **when** I try to create an alert, **then** I'm told an alert needs a paid subscription and pointed to Settings.
+
+Settings are held in memory for now, so a refresh clears them; keeping them across sessions is CM-17.
+
+### CM-17: Edit favorites and keep settings
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Feature | S | CM-01, CM-06, CM-13, CM-15 | Unassigned | 2026-11-09 | Not started |
+
+**Story:** As a viewer whose tastes changed, I want to edit my favorites and have my settings kept so that my picks stay accurate after I come back.
+
+**Scenarios:**
+
+1. **Given** I have favorites, **when** I swap one for another and save, **then** the change is still there after I log in again.
+2. **Given** I swapped Hulu for HBO Max and saved, **when** I refresh the page or start a new session, **then** my services are still Netflix and HBO Max.
 3. **Goes wrong:** **given** I have a waiting alert, **when** I remove every paid service and save, **then** I'm warned that alerts need a paid service, and my alert is kept.
 
 ### CM-14: Similarity model

@@ -15,7 +15,7 @@ import {
 } from "./ui";
 import { URL_VIEWS } from "./views";
 
-type View = "home" | "tutorial" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history" | "delete";
+type View = "home" | "tutorial" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history" | "delete" | "settings";
 
 const pathFor = (v: View, tutorial: boolean) => (tutorial ? "/tutorial" : (URL_VIEWS as readonly string[]).includes(v) ? `/${v}` : "/");
 const viewFor = (path: string, tutorial: boolean): View => tutorial ? "tutorial" : URL_VIEWS.find((v) => `/${v}` === path) ?? "home";
@@ -297,6 +297,12 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
     go("alerts");
   }
 
+  // Random's cached pick was chosen with the old services, so the next visit rolls fresh.
+  function saveServices(next: ServiceId[]) {
+    setServices(next);
+    setRandomId(null);
+  }
+
   function openRandom() {
     if (!randomId) rollRandom();
     go("random");
@@ -339,7 +345,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
               </button>
             ))}
           </nav>}
-          <AccountControl user={user} onSignIn={() => router.push("/login")} onHistory={() => go("history")} onSignOut={signOut} onDelete={openDeleteAccount} />
+          <AccountControl user={user} onSignIn={() => router.push("/login")} onHistory={() => go("history")} onSettings={() => go("settings")} onSignOut={signOut} onDelete={openDeleteAccount} />
         </div>
       </header>
 
@@ -724,6 +730,8 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
           </div>
         )}
 
+        {view === "settings" && user && <Settings saved={services} onSave={saveServices} onCancel={() => go("home")} />}
+
         {view === "history" && (
           <div>
             <Heading eyebrow="History" title="Your movies" subtitle="Recommendations, Watch handoffs, and your own ratings." />
@@ -788,7 +796,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
 
 // ---------- Pieces ----------
 
-function AccountControl({ user, onSignIn, onHistory, onSignOut, onDelete }: { user: string | null; onSignIn: () => void; onHistory: () => void; onSignOut: () => void; onDelete: () => void }) {
+function AccountControl({ user, onSignIn, onHistory, onSettings, onSignOut, onDelete }: { user: string | null; onSignIn: () => void; onHistory: () => void; onSettings: () => void; onSignOut: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
   if (!user) return <SecondaryButton onClick={onSignIn}>Sign in</SecondaryButton>;
   return (
@@ -806,6 +814,7 @@ function AccountControl({ user, onSignIn, onHistory, onSignOut, onDelete }: { us
         <div className="absolute right-0 mt-2 w-56 rounded-xl border border-teal/15 bg-ivory p-2 shadow-lg">
           <p className="truncate px-3 py-2 text-[13px] text-plum">{user}</p>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onHistory(); }}>History</button>
+          <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onSettings(); }}>Settings</button>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onSignOut(); }}>Sign out</button>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left text-brick hover:bg-sand" onClick={() => { setOpen(false); onDelete(); }}>Delete account</button>
         </div>
@@ -863,6 +872,36 @@ function SessionBar(props: {
   );
 }
 
+// Shared by onboarding and Settings.
+function ServicePicker({ selected, onChange }: { selected: ServiceId[]; onChange: (s: ServiceId[]) => void }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {SERVICES.map((s) => (
+        <Chip key={s.id} selected={selected.includes(s.id)} onClick={() => onChange(selected.includes(s.id) ? selected.filter((x) => x !== s.id) : [...selected, s.id])}>
+          {s.name}{s.free && <span className="text-[13px] text-plum">· free with ads</span>}
+        </Chip>
+      ))}
+    </div>
+  );
+}
+
+// Edits a draft; saved services change only on Save. Leaving unmounts the draft.
+function Settings({ saved, onSave, onCancel }: { saved: ServiceId[]; onSave: (s: ServiceId[]) => void; onCancel: () => void }) {
+  const [draft, setDraft] = useState<ServiceId[]>(saved);
+  const [justSaved, setJustSaved] = useState(false);
+  return (
+    <div className="mx-auto max-w-2xl">
+      <Heading eyebrow="Settings" title="Your streaming services" subtitle="I'll favor movies you can already watch. US region." />
+      <ServicePicker selected={draft} onChange={(s) => { setDraft(s); setJustSaved(false); }} />
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <PrimaryButton onClick={() => { onSave(draft); setJustSaved(true); }}>Save changes</PrimaryButton>
+        <SecondaryButton onClick={onCancel}>Cancel</SecondaryButton>
+        {justSaved && <span role="status" className="inline-flex min-h-11 items-center text-[14px] text-plum">✓ Saved</span>}
+      </div>
+    </div>
+  );
+}
+
 function Onboarding(props: {
   step: OnboardStep;
   setStep: (s: OnboardStep) => void;
@@ -911,13 +950,7 @@ function Onboarding(props: {
       {step === "services" && (
         <>
           <Heading title="Which services do you have?" subtitle="I'll favor movies you can already watch. US region." />
-          <div className="grid gap-2 sm:grid-cols-2">
-            {SERVICES.map((s) => (
-              <Chip key={s.id} selected={services.includes(s.id)} onClick={() => setServices(services.includes(s.id) ? services.filter((x) => x !== s.id) : [...services, s.id])}>
-                {s.name}{s.free && <span className="text-[13px] text-plum">· free with ads</span>}
-              </Chip>
-            ))}
-          </div>
+          <ServicePicker selected={services} onChange={setServices} />
           <StepButtons onNext={next} nextLabel="Next" onSkip={() => { setServices([]); next(); }} />
         </>
       )}
@@ -1118,8 +1151,8 @@ function AlertsPage(props: {
             <p>Good news: it&apos;s already included with {serviceById(includedOn.service).name} (sample availability). No alert needed.</p>
           ) : paid.length === 0 ? (
             <div className="space-y-3">
-              <p>Alerts need at least one paid subscription so I know when one applies. {props.onboarded ? "Services are chosen during setup; editing them comes in a later version." : "You can add services in setup."}</p>
-              {!props.onboarded && <SecondaryButton onClick={props.onSetup}>Set up services</SecondaryButton>}
+              <p>Alerts need at least one paid subscription so I know when one applies. {props.onboarded && props.user ? "You can change your services in Settings, in the account menu." : "You can add services in setup."}</p>
+              {!(props.onboarded && props.user) && <SecondaryButton onClick={props.onSetup}>Set up services</SecondaryButton>}
             </div>
           ) : (
             <>

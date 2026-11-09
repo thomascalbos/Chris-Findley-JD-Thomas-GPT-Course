@@ -37,7 +37,7 @@ One person choosing a movie for themselves after a long day. Occasions like date
 | Account menu | History, Settings, Delete account, Log out |
 | Logged out | Tutorial and Log in only |
 
-Home leads with **Find tonight's movie**.
+Home leads with **Find tonight's movie**, followed by **Look up a movie**, a search of the full catalog that opens a movie's details (CM-06).
 
 ## Tutorial
 
@@ -185,7 +185,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
-| 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-09 | In progress |
+| 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-09 | In review |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-09 | In progress |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
@@ -329,7 +329,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-02, CM-03 | Chris | 2026-11-09 | In progress |
+| Feature | M | CM-02, CM-03 | Chris | 2026-11-09 | In review |
 
 **Story:** As a viewer, I want to search for a movie and open its details so that I can choose favorites and track movies.
 

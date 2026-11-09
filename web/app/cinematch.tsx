@@ -622,7 +622,8 @@ export default function CineMatch() {
               </label>
               <p id="delete-help" className="text-[13px] text-plum">The Delete button turns on only when the box says DELETE, in capitals.</p>
               <div className="flex flex-wrap gap-2">
-                <PrimaryButton className="bg-brick! hover:bg-brick/90!" disabled={deleteText.trim() !== "DELETE"} onClick={deleteAccount}>Delete account</PrimaryButton>
+                {/* Darker brick (#9e4740): 5.8:1 with the ivory label. Plain brick is 4.39:1, below 4.5 (PRD style guide). */}
+                <PrimaryButton className="bg-[#9e4740]! hover:bg-[#8a3d37]!" disabled={deleteText.trim() !== "DELETE"} onClick={deleteAccount}>Delete account</PrimaryButton>
                 <SecondaryButton onClick={cancelDeleteAccount}>Cancel</SecondaryButton>
               </div>
             </Panel>

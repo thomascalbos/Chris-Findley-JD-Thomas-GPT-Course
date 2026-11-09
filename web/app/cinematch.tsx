@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import {
   CORE, NO_ADJUSTMENTS, QUESTIONS, canNotify, followUps, isOpen, paidServices, randomPick, recommend, rationale,
   type Adjustments, type Answers, type Must, type QuestionKey, type Result, type Taste,
@@ -10,8 +12,12 @@ import {
   Chip, Heading, Icon, MovieCard, Panel, Poster, PrimaryButton, SampleTag, SecondaryButton, Stars, TextButton, Toggle,
   WatchLink, inputClass,
 } from "./ui";
+import { URL_VIEWS } from "./views";
 
 type View = "home" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history" | "delete";
+
+const pathFor = (v: View) => ((URL_VIEWS as readonly string[]).includes(v) ? `/${v}` : "/");
+const viewFor = (path: string): View => URL_VIEWS.find((v) => `/${v}` === path) ?? "home";
 type OnboardStep = "account" | "services" | "letterboxd" | "favorites" | "finish";
 type Pending = { kind: "alert"; movieId: string } | { kind: "save-pick" };
 type Delivery = "email" | "inapp" | "both";
@@ -38,13 +44,14 @@ const REJECT_REASONS = [
 let nextId = 1;
 const stamp = () => new Date().toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-export default function CineMatch() {
-  const [view, setView] = useState<View>("home");
+export default function CineMatch({ userEmail, initialView = "home" }: { userEmail: string | null; initialView?: View }) {
+  const router = useRouter();
+  const [view, setView] = useState<View>(initialView);
   const [onboardStep, setOnboardStep] = useState<OnboardStep>("account");
   const [detailsId, setDetailsId] = useState<string | null>(null);
 
-  // Account and saved taste (sample, in memory only)
-  const [user, setUser] = useState<string | null>(null);
+  // Account (a real login, CM-03) and saved taste (sample, in memory only)
+  const [user, setUser] = useState<string | null>(userEmail);
   const [onboarded, setOnboarded] = useState(false);
   const [services, setServices] = useState<ServiceId[]>([]);
   const [imported, setImported] = useState<Import | null>(null);
@@ -73,7 +80,6 @@ export default function CineMatch() {
   // Delete account
   const [deleteReturn, setDeleteReturn] = useState<View>("home");
   const [deleteText, setDeleteText] = useState("");
-  const [accountDeleted, setAccountDeleted] = useState(false);
 
   const taste: Taste = useMemo(
     () => ({
@@ -91,7 +97,26 @@ export default function CineMatch() {
   function go(v: View) {
     setDetailsId(null);
     setView(v);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+    if (typeof window !== "undefined") {
+      if (window.location.pathname !== pathFor(v)) window.history.pushState(null, "", pathFor(v));
+      window.scrollTo({ top: 0 });
+    }
+  }
+
+  // Browser Back and Forward move between screens that have an address.
+  useEffect(() => {
+    const onPop = () => {
+      setDetailsId(null);
+      setView(viewFor(window.location.pathname));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  async function signOut() {
+    await getSupabaseBrowser().auth.signOut();
+    router.replace("/login");
+    router.refresh();
   }
 
   function addLog(movieId: string, event: string) {
@@ -107,7 +132,6 @@ export default function CineMatch() {
 
   function signIn() {
     setUser(DEMO_EMAIL);
-    setAccountDeleted(false);
     if (view === "account") {
       if (onboarded) resume();
       else {
@@ -139,8 +163,11 @@ export default function CineMatch() {
     go(deleteReturn);
   }
 
-  // Wipes everything tied to the account so the same email starts fresh next time.
-  function deleteAccount() {
+  // Wipes everything tied to the account and logs out. The email stays on the
+  // approved list, so logging in again starts with an empty account (see CM-03
+  // in the PRD). Saved data is in-app only for now; once it's stored in the
+  // database, this must delete those rows too.
+  async function deleteAccount() {
     if (deleteText.trim() !== "DELETE") return;
     setUser(null);
     setOnboarded(false);
@@ -164,8 +191,9 @@ export default function CineMatch() {
     setAdjustments(NO_ADJUSTMENTS);
     setResult(null);
     setDeleteText("");
-    setAccountDeleted(true);
-    go("home");
+    await getSupabaseBrowser().auth.signOut();
+    router.replace("/login?deleted=1");
+    router.refresh();
   }
 
   // ----- Questionnaire -----
@@ -290,19 +318,13 @@ export default function CineMatch() {
               </button>
             ))}
           </nav>
-          <AccountControl user={user} onSignIn={() => { setPending(null); go("account"); }} onHistory={() => go("history")} onSignOut={() => { setUser(null); go("home"); }} onDelete={openDeleteAccount} />
+          <AccountControl user={user} onSignIn={() => router.push("/login")} onHistory={() => go("history")} onSignOut={signOut} onDelete={openDeleteAccount} />
         </div>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8">
         {view === "home" && (
           <div className="space-y-8">
-            {accountDeleted && (
-              <div role="status" className="flex items-start justify-between gap-3 rounded-2xl border border-brick/30 bg-sand p-4">
-                <p>Your account and everything saved with it has been deleted. Signing in with the same email starts a brand-new account.</p>
-                <TextButton onClick={() => setAccountDeleted(false)}>Dismiss</TextButton>
-              </div>
-            )}
             <section className="rounded-3xl bg-teal p-6 text-ivory md:p-10">
               <p className="text-xs font-medium uppercase tracking-widest text-cream">Tonight at the counter</p>
               <h1 className="mt-2 font-display text-[32px] leading-tight md:text-[40px]">One movie worth watching. No endless scrolling.</h1>
@@ -701,11 +723,11 @@ function AccountControl({ user, onSignIn, onHistory, onSignOut, onDelete }: { us
         onClick={() => setOpen(!open)}
         className="flex h-11 w-11 items-center justify-center rounded-full bg-plum font-medium text-ivory"
       >
-        V
+        {user[0].toUpperCase()}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-56 rounded-xl border border-teal/15 bg-ivory p-2 shadow-lg">
-          <p className="px-3 py-2 text-[13px] text-plum">{user} (sample)</p>
+          <p className="truncate px-3 py-2 text-[13px] text-plum">{user}</p>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onHistory(); }}>History</button>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left hover:bg-sand" onClick={() => { setOpen(false); onSignOut(); }}>Sign out</button>
           <button type="button" className="block min-h-11 w-full rounded-lg px-3 text-left text-brick hover:bg-sand" onClick={() => { setOpen(false); onDelete(); }}>Delete account</button>

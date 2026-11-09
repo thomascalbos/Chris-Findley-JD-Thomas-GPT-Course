@@ -5,9 +5,12 @@ import { createClient } from "@supabase/supabase-js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+// Use whichever movies are in the catalog (sample ones before CM-02's import, real ones after).
+const { data: movies, error: moviesError } = await createClient(url, key).from("movies").select("id").order("id").limit(3);
+if (moviesError || !movies || movies.length < 3) throw new Error(`Need at least 3 movies: ${moviesError?.message ?? "catalog is empty"}`);
 const accounts = {
-  A: { email: process.env.TEST_A_EMAIL!, password: process.env.TEST_A_PASSWORD!, movie: "lighthouse-bakery" },
-  B: { email: process.env.TEST_B_EMAIL!, password: process.env.TEST_B_PASSWORD!, movie: "signal-lost" },
+  A: { email: process.env.TEST_A_EMAIL!, password: process.env.TEST_A_PASSWORD!, movie: movies[0].id },
+  B: { email: process.env.TEST_B_EMAIL!, password: process.env.TEST_B_PASSWORD!, movie: movies[1].id },
 };
 
 async function logIn(name: "A" | "B") {
@@ -32,7 +35,7 @@ const { data: seenByA, error } = await a.client.from("favorites").select("user_i
 if (error) throw new Error(error.message);
 
 // A also tries to write a favorite into B's account; RLS should refuse it.
-const forged = await a.client.from("favorites").insert({ user_id: b.userId, movie_id: "paper-planets" });
+const forged = await a.client.from("favorites").insert({ user_id: b.userId, movie_id: movies[2].id });
 
 const onlyOwn = seenByA.length > 0 && seenByA.every((f) => f.user_id === a.userId);
 console.log("A sees:", seenByA.map((f) => f.movie_id));

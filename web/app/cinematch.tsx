@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import {
@@ -745,6 +746,11 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
           </div>
         )}
       </main>
+
+      <footer className="mx-auto max-w-4xl px-4 pb-24 text-[13px] text-plum md:pb-8">
+        Movie data from TMDB · Streaming data from JustWatch ·{" "}
+        <Link href="/about" className="underline">About</Link>
+      </footer>
 
       {detailsId && (
         <div role="dialog" aria-modal="true" aria-label={movieById(detailsId).title} className="fixed inset-0 z-40 overflow-y-auto bg-teal/60 p-4" onClick={() => setDetailsId(null)}>

@@ -80,6 +80,7 @@ create policy "Viewers remove their own favorites"
 -- The project doesn't auto-expose new tables, so each table is granted to the
 -- public roles explicitly. Row-level security above still limits which rows.
 -- Every future table needs its own grant here, or the app gets "permission denied".
+-- The secret key (service_role) needs grants too; see 0003_service_role_grants.sql.
 
 grant select on public.movies, public.movie_availability to anon, authenticated;
 grant select, insert, delete on public.favorites to authenticated;

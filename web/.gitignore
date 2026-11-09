@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local copy of the movie catalog (CM-02); regenerate with scripts/export-movies.mts
+/data

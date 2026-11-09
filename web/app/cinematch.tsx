@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CORE, NO_ADJUSTMENTS, QUESTIONS, canNotify, followUps, isOpen, paidServices, randomPick, recommend, rationale,
   type Adjustments, type Answers, type Must, type QuestionKey, type Result, type Taste,
@@ -652,6 +653,11 @@ export default function CineMatch() {
           </div>
         )}
       </main>
+
+      <footer className="mx-auto max-w-4xl px-4 pb-24 text-[13px] text-plum md:pb-8">
+        Movie data from TMDB · Streaming data from JustWatch ·{" "}
+        <Link href="/about" className="underline">About</Link>
+      </footer>
 
       {detailsId && (
         <div role="dialog" aria-modal="true" aria-label={movieById(detailsId).title} className="fixed inset-0 z-40 overflow-y-auto bg-teal/60 p-4" onClick={() => setDetailsId(null)}>

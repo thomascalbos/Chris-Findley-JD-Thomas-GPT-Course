@@ -184,7 +184,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | In review |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
-| 2: Access | CM-05 | Tutorial | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | In review |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
@@ -309,7 +309,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-03, for the login hand-off | Unassigned | 2026-11-02 | Not started |
+| Feature | M | CM-03, for the login hand-off | Findley | 2026-11-09 | In review |
 
 The tutorial reuses the current demo and its sample movies.
 

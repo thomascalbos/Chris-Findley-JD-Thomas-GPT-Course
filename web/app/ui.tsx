@@ -157,12 +157,13 @@ export function WatchLink({ movie, services, onWatch }: { movie: Movie; services
   );
 }
 
-export function MovieCard({ movie, services, children, rationale }: { movie: Movie; services: ServiceId[]; children?: React.ReactNode; rationale?: string }) {
+export function MovieCard({ movie, services, children, rationale, sampleMovie = false }: { movie: Movie; services: ServiceId[]; children?: React.ReactNode; rationale?: string; sampleMovie?: boolean }) {
   return (
     <Panel className="grid gap-5 sm:grid-cols-[12rem_1fr]">
       <Poster movie={movie} />
       <div className="space-y-4">
         <div>
+          {sampleMovie && <p className="mb-2"><SampleTag>Sample movie - availability is illustrative</SampleTag></p>}
           <h2 className="font-display text-2xl leading-tight md:text-3xl">{movie.title}</h2>
           <Meta movie={movie} />
         </div>

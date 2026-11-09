@@ -14,10 +14,10 @@ import {
 } from "./ui";
 import { URL_VIEWS } from "./views";
 
-type View = "home" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history" | "delete";
+type View = "home" | "tutorial" | "onboarding" | "account" | "questions" | "nearmiss" | "pick" | "reject" | "empty" | "random" | "trending" | "alerts" | "history" | "delete";
 
-const pathFor = (v: View) => ((URL_VIEWS as readonly string[]).includes(v) ? `/${v}` : "/");
-const viewFor = (path: string): View => URL_VIEWS.find((v) => `/${v}` === path) ?? "home";
+const pathFor = (v: View, tutorial: boolean) => (tutorial ? "/tutorial" : (URL_VIEWS as readonly string[]).includes(v) ? `/${v}` : "/");
+const viewFor = (path: string, tutorial: boolean): View => tutorial ? "tutorial" : URL_VIEWS.find((v) => `/${v}` === path) ?? "home";
 type OnboardStep = "account" | "services" | "letterboxd" | "favorites" | "finish";
 type Pending = { kind: "alert"; movieId: string } | { kind: "save-pick" };
 type Delivery = "email" | "inapp" | "both";
@@ -46,6 +46,7 @@ const stamp = () => new Date().toLocaleString([], { month: "short", day: "numeri
 
 export default function CineMatch({ userEmail, initialView = "home" }: { userEmail: string | null; initialView?: View }) {
   const router = useRouter();
+  const isTutorial = initialView === "tutorial";
   const [view, setView] = useState<View>(initialView);
   const [onboardStep, setOnboardStep] = useState<OnboardStep>("account");
   const [detailsId, setDetailsId] = useState<string | null>(null);
@@ -61,6 +62,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   const [log, setLog] = useState<LogEntry[]>([]); // guests' entries are kept for the session and saved on sign-in
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [tutorialNotice, setTutorialNotice] = useState<"save" | "alert" | null>(null);
 
   // Tonight's questionnaire session
   const [answers, setAnswers] = useState<Answers>({});
@@ -82,23 +84,27 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   const [deleteText, setDeleteText] = useState("");
 
   const taste: Taste = useMemo(
-    () => ({
-      services,
-      favorites,
-      ratings: imported?.ratings ?? {},
-      watchlist: imported?.watchlist ?? [],
-      watched: [...new Set([...(imported?.watched ?? []), ...markedWatched])],
-    }),
-    [services, favorites, imported, markedWatched],
+    () => isTutorial
+      ? { services: [], favorites: [], ratings: {}, watchlist: [], watched: [] }
+      : {
+          services,
+          favorites,
+          ratings: imported?.ratings ?? {},
+          watchlist: imported?.watchlist ?? [],
+          watched: [...new Set([...(imported?.watched ?? []), ...markedWatched])],
+        },
+    [isTutorial, services, favorites, imported, markedWatched],
   );
   const steps = useMemo(() => [...CORE, ...(answers.time ? followUps(answers, taste) : [])], [answers, taste]);
   const pick = result && result.kind !== "empty" ? result.movie : null;
 
   function go(v: View) {
+    setTutorialNotice(null);
     setDetailsId(null);
     setView(v);
     if (typeof window !== "undefined") {
-      if (window.location.pathname !== pathFor(v)) window.history.pushState(null, "", pathFor(v));
+      const path = pathFor(v, isTutorial);
+      if (window.location.pathname !== path) window.history.pushState(null, "", path);
       window.scrollTo({ top: 0 });
     }
   }
@@ -107,11 +113,11 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   useEffect(() => {
     const onPop = () => {
       setDetailsId(null);
-      setView(viewFor(window.location.pathname));
+      setView(viewFor(window.location.pathname, isTutorial));
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [isTutorial]);
 
   async function signOut() {
     await getSupabaseBrowser().auth.signOut();
@@ -120,6 +126,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   }
 
   function addLog(movieId: string, event: string) {
+    if (isTutorial) return;
     setLog((l) => [{ id: nextId++, movieId, event, at: stamp() }, ...l]);
   }
 
@@ -199,6 +206,12 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   // ----- Questionnaire -----
 
   function startFlow() {
+    if (isTutorial) {
+      setAnswers({});
+      setMust({});
+      setIncludeRewatches(false);
+    }
+    setTutorialNotice(null);
     setStep(0);
     setExclude([]);
     setAdjustments(NO_ADJUSTMENTS);
@@ -257,7 +270,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
     addLog(pick.id, `Not this one: ${label.toLowerCase()}`);
     const adj = { ...adjustments };
     let nextTaste = taste;
-    if (reason === "seen") {
+    if (reason === "seen" && !isTutorial) {
       setMarkedWatched((w) => [...w, pick.id]);
       nextTaste = { ...taste, watched: [...taste.watched, pick.id] };
     }
@@ -273,6 +286,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   }
 
   function watch(movie: Movie, service: ServiceId) {
+    if (isTutorial) return;
     const secs = flowStart && pick?.id === movie.id ? ` after ${Math.round((Date.now() - flowStart) / 1000)}s` : "";
     addLog(movie.id, `Watch handoff to ${serviceById(service).name}${secs}`);
   }
@@ -302,10 +316,16 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
     <div className="min-h-screen pb-24 md:pb-10">
       <header className="sticky top-0 z-20 border-b border-teal/10 bg-ivory/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
-          <button type="button" onClick={() => go("home")} className="font-display text-2xl md:text-[28px]">
+          <button type="button" onClick={() => go(isTutorial ? "tutorial" : "home")} className="font-display text-2xl md:text-[28px]">
             Cine<span className="text-brick">Match</span>
           </button>
-          <nav aria-label="Primary" className="hidden gap-1 md:flex">
+          {isTutorial ? (
+            <nav aria-label="Primary" className="hidden md:flex">
+              <button type="button" aria-current="page" onClick={() => go("tutorial")} className="flex min-h-11 items-center rounded-full bg-teal px-4 text-[15px] font-medium text-ivory">
+                Tutorial
+              </button>
+            </nav>
+          ) : <nav aria-label="Primary" className="hidden gap-1 md:flex">
             {NAV.map((n) => (
               <button
                 key={n.view}
@@ -317,12 +337,36 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
                 <Icon name={n.icon} /> {n.label}
               </button>
             ))}
-          </nav>
+          </nav>}
           <AccountControl user={user} onSignIn={() => router.push("/login")} onHistory={() => go("history")} onSignOut={signOut} onDelete={openDeleteAccount} />
         </div>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8">
+        {view === "tutorial" && (
+          <div className="space-y-6">
+            <section className="rounded-3xl bg-teal p-6 text-ivory md:p-10">
+              <p className="inline-flex items-center rounded-full border border-cream/70 bg-cream px-3 py-1 text-xs font-semibold uppercase tracking-wider text-teal shadow-sm">
+                Guided sample - no account needed
+              </p>
+              <h1 className="mt-4 font-display text-[32px] leading-tight md:text-[40px]">Try CineMatch before you log in</h1>
+              <p className="mt-3 max-w-xl text-ivory/90">
+                Answer the sample quiz, see why a movie fits, and ask for a different pick. Every movie and availability option in this tutorial is illustrative.
+              </p>
+              <button type="button" onClick={startFlow} className="mt-6 inline-flex min-h-12 items-center rounded-xl bg-cream px-6 text-base font-medium text-teal hover:bg-ivory">
+                Start tutorial
+              </button>
+            </section>
+            <Panel className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="font-display text-[22px]">Ready to make it yours?</h2>
+                <p className="text-plum">Log in to save picks, create alerts, and use your own preferences.</p>
+              </div>
+              <PrimaryButton onClick={() => router.push("/login")}>Get started</PrimaryButton>
+            </Panel>
+          </div>
+        )}
+
         {view === "home" && (
           <div className="space-y-8">
             <section className="rounded-3xl bg-teal p-6 text-ivory md:p-10">
@@ -465,7 +509,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
               />
 
               <div className="mt-6 flex items-center justify-between gap-3">
-                <SecondaryButton onClick={() => (step === 0 ? go("home") : setStep(step - 1))}>Back</SecondaryButton>
+                <SecondaryButton onClick={() => (step === 0 ? go(isTutorial ? "tutorial" : "home") : setStep(step - 1))}>Back</SecondaryButton>
                 <PrimaryButton disabled={!value.length} onClick={() => (last ? run([], NO_ADJUSTMENTS) : setStep(step + 1))}>
                   {last ? "Find my movie" : isCore ? "Next" : "Next refinement"}
                 </PrimaryButton>
@@ -504,25 +548,52 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
 
         {view === "pick" && result?.kind === "pick" && (
           <div>
-            <Heading eyebrow="Tonight's pick" title="Here's your movie" />
-            <MovieCard movie={result.movie} services={services} rationale={result.rationale}>
-              <WatchLink movie={result.movie} services={services} onWatch={(s) => watch(result.movie, s)} />
+            <Heading eyebrow={isTutorial ? "Tutorial pick" : "Tonight's pick"} title="Here's your movie" />
+            <MovieCard movie={result.movie} services={isTutorial ? [] : services} rationale={result.rationale} sampleMovie={isTutorial}>
+              <WatchLink movie={result.movie} services={isTutorial ? [] : services} onWatch={(s) => watch(result.movie, s)} />
               <div className="flex flex-wrap gap-2">
                 <SecondaryButton onClick={() => go("reject")}>Not this one</SecondaryButton>
-                {canNotify(result.movie, services) && <SecondaryButton onClick={() => notify(result.movie.id)}>Notify me</SecondaryButton>}
-                {user ? (
+                {isTutorial ? (
+                  <>
+                    <SecondaryButton onClick={() => setTutorialNotice("alert")}>Create alert</SecondaryButton>
+                    <TextButton onClick={() => setTutorialNotice("save")}>Save to history</TextButton>
+                  </>
+                ) : canNotify(result.movie, services) && <SecondaryButton onClick={() => notify(result.movie.id)}>Notify me</SecondaryButton>}
+                {!isTutorial && (user ? (
                   <span className="inline-flex min-h-11 items-center text-[14px] text-plum">✓ Saved to your history</span>
                 ) : (
                   <TextButton onClick={() => askForAccount({ kind: "save-pick" })}>Save to history</TextButton>
-                )}
+                ))}
               </div>
+              {tutorialNotice && (
+                <div role="status" className="rounded-xl border border-brick/30 bg-sand p-4">
+                  <p className="font-medium">That needs an account</p>
+                  <p className="mt-1 text-[15px] text-plum">
+                    {tutorialNotice === "alert" ? "Log in to create alerts for real movie availability." : "Log in to save picks to your history."} Nothing from the tutorial was saved.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <PrimaryButton onClick={() => router.push("/login")}>Log in</PrimaryButton>
+                    <SecondaryButton onClick={() => setTutorialNotice(null)}>Keep exploring</SecondaryButton>
+                  </div>
+                </div>
+              )}
             </MovieCard>
+            {isTutorial && (
+              <Panel className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-display text-[22px]">You finished the tutorial</h2>
+                  <p className="text-plum">Log in when you&apos;re ready for picks you can save and alerts tied to real availability.</p>
+                </div>
+                <PrimaryButton onClick={() => router.push("/login")}>Get started</PrimaryButton>
+              </Panel>
+            )}
           </div>
         )}
 
         {view === "reject" && pick && (
           <div className="mx-auto max-w-2xl">
             <Heading eyebrow="One quick question" title="Not the one? What missed the mark?" subtitle={`I'll keep your answers and skip ${pick.title}.`} />
+            {isTutorial && <p className="mb-4"><SampleTag>Sample movie - no real availability</SampleTag></p>}
             <div className="grid gap-2 sm:grid-cols-2">
               {REJECT_REASONS.map((r) => (
                 <SecondaryButton key={r.id} onClick={() => reject(r.id)} className="justify-start">{r.label}</SecondaryButton>
@@ -689,7 +760,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
         </div>
       )}
 
-      <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 border-t border-teal/15 bg-ivory md:hidden">
+      {!isTutorial && <nav aria-label="Primary" className="fixed inset-x-0 bottom-0 z-30 border-t border-teal/15 bg-ivory md:hidden">
         <div className="grid grid-cols-4">
           {NAV.map((n) => (
             <button
@@ -704,7 +775,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
             </button>
           ))}
         </div>
-      </nav>
+      </nav>}
     </div>
   );
 }

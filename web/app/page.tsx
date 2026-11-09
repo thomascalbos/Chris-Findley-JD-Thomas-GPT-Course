@@ -1,5 +1,16 @@
+import { Suspense } from "react";
+import { getViewerEmail } from "@/lib/supabase-server";
 import CineMatch from "./cinematch";
 
 export default function Home() {
-  return <CineMatch />;
+  return (
+    <Suspense>
+      <App />
+    </Suspense>
+  );
+}
+
+// Reads the login cookie, so it renders per request inside the boundary above.
+async function App() {
+  return <CineMatch userEmail={await getViewerEmail()} />;
 }

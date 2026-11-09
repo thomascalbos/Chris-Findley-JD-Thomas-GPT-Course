@@ -346,7 +346,9 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
         {view === "tutorial" && (
           <div className="space-y-6">
             <section className="rounded-3xl bg-teal p-6 text-ivory md:p-10">
-              <SampleTag>Guided sample - no account needed</SampleTag>
+              <p className="inline-flex items-center rounded-full border border-cream/70 bg-cream px-3 py-1 text-xs font-semibold uppercase tracking-wider text-teal shadow-sm">
+                Guided sample - no account needed
+              </p>
               <h1 className="mt-4 font-display text-[32px] leading-tight md:text-[40px]">Try CineMatch before you log in</h1>
               <p className="mt-3 max-w-xl text-ivory/90">
                 Answer the sample quiz, see why a movie fits, and ask for a different pick. Every movie and availability option in this tutorial is illustrative.

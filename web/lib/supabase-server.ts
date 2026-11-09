@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 // Supabase client for server components and route handlers. It reads the
 // viewer's login session from cookies, so database calls run as that viewer.
@@ -21,6 +22,8 @@ export async function getSupabaseServer() {
 
 // The logged-in viewer's email, or null when logged out.
 export async function getViewerEmail() {
+  // Checking the login reads the clock (token expiry), so render per request.
+  await connection();
   const { data } = await (await getSupabaseServer()).auth.getClaims();
   return (data?.claims.email as string | undefined) ?? null;
 }

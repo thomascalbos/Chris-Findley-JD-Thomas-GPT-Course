@@ -180,7 +180,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 
 | Sprint | ID | Story | Type | Size | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1: Data foundation | CM-01 | Database setup | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-08 | In progress |
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-03 | Login | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
@@ -245,7 +245,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | Nothing | Unassigned | 2026-11-02 | Not started |
+| Foundation | M | Nothing | Chris | 2026-11-08 | In progress |
 
 **Story:** As a CineMatch developer, I want to store movies and viewer data in a hosted database so that I can build features on real data in the live app.
 

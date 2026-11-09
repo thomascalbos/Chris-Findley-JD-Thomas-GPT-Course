@@ -8,6 +8,7 @@ import {
   CORE, NO_ADJUSTMENTS, QUESTIONS, canNotify, followUps, isOpen, paidServices, randomPick, recommend, rationale,
   type Adjustments, type Answers, type Must, type QuestionKey, type Result, type Taste,
 } from "./engine";
+import { MovieLookup } from "./movie-search";
 import { MOVIES, SAMPLE_IMPORT, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
 import {
   Chip, Heading, Icon, MovieCard, Panel, Poster, PrimaryButton, SampleTag, SecondaryButton, Stars, TextButton, Toggle,
@@ -390,6 +391,8 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
                 Find tonight&apos;s movie
               </button>
             </section>
+
+            <MovieLookup services={services} />
 
             {!onboarded && (
               <Panel className="flex flex-col gap-4 border-dashed sm:flex-row sm:items-center sm:justify-between">

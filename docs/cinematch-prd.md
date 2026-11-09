@@ -187,7 +187,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 2: Access | CM-05 | Tutorial | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Unassigned | 2026-11-02 | Not started |
-| 3: Getting started | CM-08 | Delete account | Feature | S | Unassigned | 2026-11-02 | Not started |
+| 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
@@ -352,7 +352,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | S | CM-03 | Unassigned | 2026-11-02 | Not started |
+| Feature | S | CM-03 | jshannonuva | 2026-11-08 | Done |
 
 **Story:** As a viewer who's leaving, I want to delete my account and everything saved with it so that I can be sure my data is gone.
 

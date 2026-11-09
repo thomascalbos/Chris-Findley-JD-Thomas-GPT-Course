@@ -186,7 +186,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Unassigned | 2026-11-02 | Not started |
-| 3: Getting started | CM-07 | Account setup | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-09 | In progress |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
@@ -343,7 +343,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-03, CM-06 | Unassigned | 2026-11-02 | Not started |
+| Feature | M | CM-03, CM-06 | Chris | 2026-11-09 | In progress |
 
 **Story:** As a new viewer, I want to pick my streaming services and up to five favorite movies so that I can get picks that fit what I have and what I like.
 

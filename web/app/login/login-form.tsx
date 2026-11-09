@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { Heading, Panel, PrimaryButton, TextButton, inputClass } from "../ui";
@@ -63,6 +64,9 @@ export default function LoginForm() {
               <PrimaryButton type="submit" disabled={busy || !email.trim()}>{busy ? "Sending…" : "Email me a login link"}</PrimaryButton>
             </form>
           </Panel>
+          <p className="mt-5 text-center text-[15px] text-plum">
+            Not ready to log in? <Link href="/tutorial" className="font-medium text-teal underline underline-offset-4 hover:text-plum">Try the sample tutorial</Link>
+          </p>
         </>
       ) : (
         <>

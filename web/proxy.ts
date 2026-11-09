@@ -9,8 +9,25 @@ const PUBLIC_PATHS = ["/login", "/auth/callback", "/tutorial", "/about", "/api/d
 // Runs before every page. It also refreshes the login session, so a viewer
 // who comes back the next day is still logged in (scenario 2).
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+
+  // The tutorial is intentionally account-free. Let it load even when a local
+  // developer has not configured Supabase yet; it never reads or saves user data.
+  if (path === "/tutorial" || path.startsWith("/tutorial/")) {
+    return NextResponse.next({ request });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    // Public pages still work in a fresh local checkout. Protected pages lead
+    // to login until the developer adds the CM-03 Supabase configuration.
+    return isPublic ? NextResponse.next({ request }) : NextResponse.redirect(new URL("/login", request.url));
+  }
+
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
+  const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet, headers) => {
@@ -24,9 +41,6 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const loggedIn = Boolean(data?.claims);
-  const path = request.nextUrl.pathname;
-  const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
-
   const redirectTo = !loggedIn && !isPublic ? "/login" : loggedIn && path === "/login" ? "/" : null;
   if (redirectTo) {
     const redirect = NextResponse.redirect(new URL(redirectTo, request.url));

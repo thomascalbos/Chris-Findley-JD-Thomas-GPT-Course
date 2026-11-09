@@ -26,7 +26,7 @@ One person choosing a movie for themselves after a long day. Occasions like date
 ## Access
 
 - **Logged-out visitors can open only the Tutorial tab and the login page.** Every other page sends them to login.
-- **Login is by emailed code.** There are no passwords (CM-03).
+- **Login is by emailed link, for approved emails only.** There are no passwords, and the team adds each email to the approved list ahead of time (CM-03).
 - **The site is non-commercial** and runs on free services (Part 2).
 
 ## Navigation
@@ -180,11 +180,11 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 
 | Sprint | ID | Story | Type | Size | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-08 | In progress |
-| 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | In review |
-| 2: Access | CM-03 | Login | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-09 | Done |
+| 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | Done |
+| 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | In review |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
-| 2: Access | CM-05 | Tutorial | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | In review |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
@@ -245,7 +245,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | Nothing | Chris | 2026-11-08 | In progress |
+| Foundation | M | Nothing | Chris | 2026-11-09 | Done |
 
 **Story:** As a CineMatch developer, I want to store movies and viewer data in a hosted database so that I can build features on real data in the live app.
 
@@ -276,16 +276,20 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | CM-01 | Unassigned | 2026-11-02 | Not started |
+| Foundation | M | CM-01 | Chris | 2026-11-09 | In review |
 
-**Story:** As a viewer, I want to log in with a code emailed to me so that I can use CineMatch without creating a password.
+**Story:** As a viewer, I want to log in with a link emailed to me so that I can use CineMatch without creating a password.
 
 **Scenarios:**
 
-1. **Given** I'm logged out, **when** I enter my email and then the 6-digit code from the email, **then** I'm logged in and land on Home.
+1. **Given** I'm logged out and my email is on the approved list, **when** I enter my email and then open the login link from the email, **then** I'm logged in and land on Home.
 2. **Given** I logged in yesterday, **when** I return today on the same device, **then** I'm still logged in.
-3. **Goes wrong:** **given** I requested a code, **when** I enter a wrong code or one more than 10 minutes old, **then** I see "That code didn't work" and stay logged out.
+3. **Goes wrong:** **given** I requested a login link, **when** I open one that's more than 10 minutes old or already used, **then** I see "That link didn't work" and stay logged out.
 4. **Goes wrong:** **given** I'm logged out, **when** I go to any page other than Tutorial, such as `/alerts`, **then** I'm sent to the login page.
+
+**Approved list:** CineMatch is invite-only for now. The login page never creates accounts; the team adds emails with `web/scripts/add-users.mts` or in Supabase under Authentication → Users. An email that isn't on the list is told so and gets no email.
+
+**Deleting an account keeps access:** because only approved emails can log in, Delete account (CM-08) wipes everything saved to the account (services, favorites, history, ratings, and alerts) and logs the viewer out, but keeps their email on the approved list. Logging in again starts them with an empty account. Until that data is stored in the database, Delete account clears the in-app data and logs the viewer out.
 
 ### CM-04: Nightly data refresh
 
@@ -305,7 +309,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-03, for the login hand-off | Unassigned | 2026-11-02 | Not started |
+| Feature | M | CM-03, for the login hand-off | Findley | 2026-11-09 | In review |
 
 The tutorial reuses the current demo and its sample movies.
 

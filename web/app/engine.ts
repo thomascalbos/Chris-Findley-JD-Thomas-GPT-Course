@@ -129,7 +129,7 @@ const TYPE_LABEL = { subscription: "Included with subscription", free: "Free wit
 export const availabilityLabel = (a: Availability) => TYPE_LABEL[a.type];
 
 // Best first: on the viewer's services, then included elsewhere, then free, then rental.
-export function watchOptions(movie: Movie, services: ServiceId[]): Availability[] {
+export function watchOptions(movie: Pick<Movie, "availability">, services: ServiceId[]): Availability[] {
   const rank = (a: Availability) =>
     (services.includes(a.service) ? 0 : 10) + (a.type === "subscription" ? 0 : a.type === "free" ? 1 : 2);
   return [...movie.availability].sort((a, b) => rank(a) - rank(b));

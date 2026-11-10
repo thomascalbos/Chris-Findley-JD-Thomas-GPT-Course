@@ -37,7 +37,7 @@ One person choosing a movie for themselves after a long day. Occasions like date
 | Account menu | History, Settings, Delete account, Log out |
 | Logged out | Tutorial and Log in only |
 
-Home leads with **Find tonight's movie**.
+Home leads with **Find tonight's movie**, followed by **Look up a movie**, a search of the full catalog that opens a movie's details (CM-06).
 
 ## Tutorial
 
@@ -182,11 +182,11 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-09 | Done |
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | Done |
-| 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | In review |
+| 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
-| 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | In review |
-| 3: Getting started | CM-06 | Movie search and details | Feature | M | Unassigned | 2026-11-02 | Not started |
-| 3: Getting started | CM-07 | Account setup | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
+| 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-09 | In review |
+| 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-09 | In progress |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
@@ -260,7 +260,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | L | CM-01 | Chris | 2026-11-09 | In review |
+| Foundation | L | CM-01 | Chris | 2026-11-09 | Done |
 
 **Story:** As a viewer, I want to see real movies and where they stream in the US so that I can get picks I can actually watch.
 
@@ -277,7 +277,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | CM-01 | Chris | 2026-11-09 | In review |
+| Foundation | M | CM-01 | Chris | 2026-11-09 | Done |
 
 **Story:** As a viewer, I want to log in with a link emailed to me so that I can use CineMatch without creating a password.
 
@@ -310,7 +310,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-03, for the login hand-off | Findley | 2026-11-09 | In review |
+| Feature | M | CM-03, for the login hand-off | Findley | 2026-11-09 | Done |
 
 The tutorial reuses the current demo and its sample movies.
 
@@ -329,7 +329,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-02, CM-03 | Unassigned | 2026-11-02 | Not started |
+| Feature | M | CM-02, CM-03 | Chris | 2026-11-09 | In review |
 
 **Story:** As a viewer, I want to search for a movie and open its details so that I can choose favorites and track movies.
 
@@ -343,7 +343,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-03, CM-06 | Unassigned | 2026-11-02 | Not started |
+| Feature | M | CM-03, CM-06 | Chris | 2026-11-09 | In progress |
 
 **Story:** As a new viewer, I want to pick my streaming services and up to five favorite movies so that I can get picks that fit what I have and what I like.
 

@@ -185,10 +185,10 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
-| 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-09 | In review |
+| 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-10 | Done |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-10 | In review |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
-| 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-09 | The quiz | Feature | M | Chris | 2026-11-10 | In progress |
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
@@ -329,7 +329,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-02, CM-03 | Chris | 2026-11-09 | In review |
+| Feature | M | CM-02, CM-03 | Chris | 2026-11-10 | Done |
 
 **Story:** As a viewer, I want to search for a movie and open its details so that I can choose favorites and track movies.
 
@@ -373,7 +373,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-02, CM-07 | Unassigned | 2026-11-02 | Not started |
+| Feature | M | CM-02, CM-07 | Chris | 2026-11-10 | In progress |
 
 **Story:** As a viewer, I want to answer a few quick questions about tonight so that I can get a pick that fits my mood and my time.
 

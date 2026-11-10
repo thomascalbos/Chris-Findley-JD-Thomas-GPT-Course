@@ -112,7 +112,7 @@ Track a specific movie and hear when it becomes **included with one of the viewe
 
 ## Settings and deleting an account
 
-- **Settings** edits streaming services (CM-13). Editing favorites and keeping settings across sessions follow in CM-17.
+- **Settings** edits streaming services (CM-13), saved to the account (CM-07). Editing favorites follows in CM-17.
 - **Delete account** removes the account and everything saved with it, after a typed confirmation (CM-08).
 
 ---
@@ -186,14 +186,14 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-09 | In review |
-| 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-09 | In progress |
+| 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-10 | In review |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
-| 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-09 | Not started |
+| 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-10 | Not started |
 | 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
@@ -290,7 +290,7 @@ These are the homework requirements every story and pull request follows.
 
 **Approved list:** CineMatch is invite-only for now. The login page never creates accounts; the team adds emails with `web/scripts/add-users.mts` or in Supabase under Authentication → Users. An email that isn't on the list is told so and gets no email.
 
-**Deleting an account keeps access:** because only approved emails can log in, Delete account (CM-08) wipes everything saved to the account (services, favorites, history, ratings, and alerts) and logs the viewer out, but keeps their email on the approved list. Logging in again starts them with an empty account. Until that data is stored in the database, Delete account clears the in-app data and logs the viewer out.
+**Deleting an account keeps access:** because only approved emails can log in, Delete account (CM-08) wipes everything saved to the account (services, favorites, history, ratings, and alerts) and logs the viewer out, but keeps their email on the approved list. Logging in again starts them with an empty account. Since CM-07, it deletes the saved services and favorites from the database; history, ratings, and alerts are cleared in the app until CM-12 and CM-15 store them.
 
 ### CM-04: Nightly data refresh
 
@@ -343,7 +343,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-03, CM-06 | Chris | 2026-11-09 | In progress |
+| Feature | M | CM-03, CM-06 | Chris | 2026-11-10 | In review |
 
 **Story:** As a new viewer, I want to pick my streaming services and up to five favorite movies so that I can get picks that fit what I have and what I like.
 
@@ -443,13 +443,13 @@ The tutorial reuses the current demo and its sample movies.
 2. **Given** I saved Paramount+, **when** I turn it off in Settings and leave without saving, **then** Paramount+ is still one of my services.
 3. **Goes wrong:** **given** I saved no paid services, **when** I try to create an alert, **then** I'm told an alert needs a paid subscription and pointed to Settings.
 
-Settings are held in memory for now, so a refresh clears them; keeping them across sessions is CM-17.
+Since CM-07, saving in Settings writes the services to the account, so they're kept across sessions.
 
 ### CM-17: Edit favorites and keep settings
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | S | CM-01, CM-06, CM-13, CM-15 | Unassigned | 2026-11-09 | Not started |
+| Feature | S | CM-01, CM-06, CM-13, CM-15 | Unassigned | 2026-11-10 | Not started |
 
 **Story:** As a viewer whose tastes changed, I want to edit my favorites and have my settings kept so that my picks stay accurate after I come back.
 
@@ -458,6 +458,8 @@ Settings are held in memory for now, so a refresh clears them; keeping them acro
 1. **Given** I have favorites, **when** I swap one for another and save, **then** the change is still there after I log in again.
 2. **Given** I swapped Hulu for HBO Max and saved, **when** I refresh the page or start a new session, **then** my services are still Netflix and HBO Max.
 3. **Goes wrong:** **given** I have a waiting alert, **when** I remove every paid service and save, **then** I'm warned that alerts need a paid service, and my alert is kept.
+
+**Already done by CM-07:** Settings saves services to the account, so scenario 2 should already pass. What's left is editing favorites after setup (scenario 1), which can reuse setup's favorites picker, and the alert warning (scenario 3), which waits for CM-15.
 
 ### CM-14: Similarity model
 

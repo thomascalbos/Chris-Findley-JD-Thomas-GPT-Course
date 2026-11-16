@@ -13,6 +13,7 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { tagMovie } from "./tagging.mts";
+import { availability, tmdb } from "./tmdb.mts";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -37,26 +38,6 @@ const readJson = <T,>(file: URL, fallback: T): T => (existsSync(file) ? JSON.par
 const RATINGS = ["G", "PG", "PG-13", "R"];
 const MIN_VOTES = 200;
 const MIN_RUNTIME = 40; // shorter than this is a short film, not a feature
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// TMDB ---------------------------------------------------------------------
-
-async function tmdb<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
-  const url = new URL(`https://api.themoviedb.org/3${path}`);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
-  for (let attempt = 1; ; attempt++) {
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${TMDB_READ_TOKEN}`, accept: "application/json" } });
-    if (res.ok) return (await res.json()) as T;
-    // Back off on rate limits and server errors; give up after 5 tries.
-    if ((res.status === 429 || res.status >= 500) && attempt < 5) {
-      const wait = Number(res.headers.get("retry-after")) * 1000 || 1000 * 2 ** attempt;
-      await sleep(wait);
-      continue;
-    }
-    throw new Error(`TMDB ${res.status} on ${path}: ${(await res.text()).slice(0, 200)}`);
-  }
-}
-
 // TMDB's discover list stops at 500 pages, so ask one release year at a time.
 async function discoverIds(): Promise<number[]> {
   const ids = new Set<number>();
@@ -73,45 +54,6 @@ async function discoverIds(): Promise<number[]> {
   }
   console.log();
   return [...ids];
-}
-
-// Watch providers ------------------------------------------------------------
-// TMDB's streaming data comes from JustWatch. Only CineMatch's eight services
-// count; channel versions (e.g. "Paramount Plus Apple TV Channel") count as the service.
-
-type Provider = { provider_name: string };
-type Availability = { service: string; type: "subscription" | "free" | "rent" };
-
-const SUBSCRIPTION_SERVICES: [RegExp, string][] = [
-  [/^Netflix/i, "netflix"],
-  [/^Amazon Prime Video/i, "prime"],
-  [/^Paramount(\+| Plus)/i, "paramount"],
-  [/^Disney(\+| Plus)/i, "disney"],
-  [/^Hulu/i, "hulu"],
-  [/^Apple TV(\+| Plus)/i, "apple"],
-  [/^(HBO )?Max\b/i, "hbo"],
-];
-const RENT_SERVICES: [RegExp, string][] = [
-  [/^Amazon Video$/i, "prime"],
-  [/^Apple TV( Store)?$/i, "apple"],
-];
-
-function availability(us?: { flatrate?: Provider[]; free?: Provider[]; ads?: Provider[]; rent?: Provider[] }): Availability[] {
-  if (!us) return [];
-  const out = new Map<string, Availability>();
-  const add = (service: string, type: Availability["type"]) => out.set(`${service}:${type}`, { service, type });
-  for (const p of us.flatrate ?? []) {
-    const match = SUBSCRIPTION_SERVICES.find(([re]) => re.test(p.provider_name));
-    if (match) add(match[1], "subscription");
-  }
-  for (const p of [...(us.free ?? []), ...(us.ads ?? [])]) {
-    if (/^Tubi/i.test(p.provider_name)) add("tubi", "free");
-  }
-  for (const p of us.rent ?? []) {
-    const match = RENT_SERVICES.find(([re]) => re.test(p.provider_name));
-    if (match) add(match[1], "rent");
-  }
-  return [...out.values()];
 }
 
 // One movie ------------------------------------------------------------------

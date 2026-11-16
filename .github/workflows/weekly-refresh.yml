@@ -1,0 +1,61 @@
+# CM-04: Weekly data refresh.
+# Every Monday, checks each movie's US streaming services on TMDB and updates
+# Supabase (web/scripts/refresh-availability.mts). Also runs from the Actions
+# tab: "Weekly availability refresh" → "Run workflow", e.g. to retry a failed run.
+#
+# Needs three repository secrets (Settings → Secrets and variables → Actions):
+#   TMDB_READ_TOKEN, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY
+name: Weekly availability refresh
+
+on:
+  schedule:
+    - cron: "0 9 * * 1" # Mondays at 09:00 UTC (4 or 5 a.m. Eastern). GitHub may start it a little late.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: report what would change, but save nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write # to open an issue when a run fails, so the whole team hears about it
+
+concurrency:
+  group: weekly-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+
+      - name: Refresh availability
+        env:
+          TMDB_READ_TOKEN: ${{ secrets.TMDB_READ_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: node scripts/refresh-availability.mts ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: Open an issue if the refresh failed
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Weekly availability refresh failed ($(date -u +%Y-%m-%d))" \
+            --body "The weekly refresh (CM-04) failed: $RUN_URL. Movies that weren't checked keep their old availability. Rerun it from the Actions tab once the cause is fixed."

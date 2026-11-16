@@ -1,11 +1,16 @@
 // CM-14: the similarity model.
 // Builds a "fingerprint" for every movie from its genres, keywords, synopsis,
-// moods, era, runtime and attention level, then finds each movie's 10 nearest
+// moods, era, runtime and attention level, then finds each movie's 30 nearest
 // movies and groups the catalog into clusters with plain-language labels.
+// Links are made two-way (if B is near A, A is listed for B too), so every
+// movie can be reached by jumping between similar movies (CM-10).
 //
 // Run from web/:  node --env-file=.env.local scripts/similarity.mts [options]
 //   --report-only   write data/similarity-report.txt for review, save nothing to the database
 //   --clusters N    number of clusters (default 60)
+//
+// Without --report-only it replaces everything in movie_clusters,
+// movie_similarity and movie_neighbors (migration 0008).
 //
 // Uses the catalog already in Supabase, so it needs no TMDB calls. Deterministic:
 // the same catalog and options always give the same clusters.
@@ -15,7 +20,7 @@ import { createClient } from "@supabase/supabase-js";
 const args = process.argv.slice(2);
 const reportOnly = args.includes("--report-only");
 const K = args.includes("--clusters") ? Number(args[args.indexOf("--clusters") + 1]) : 60;
-const NEIGHBORS = 10;
+const NEIGHBORS = 30; // room for both short and long jumps (CM-10)
 
 const { NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env;
 if (!NEXT_PUBLIC_SUPABASE_URL || !SUPABASE_SECRET_KEY) {
@@ -168,6 +173,14 @@ for (let m = 0; m < N; m++) {
 }
 console.log();
 
+// Two-way links: each movie keeps its own nearest movies, plus every movie that
+// listed it. Similarity scores are symmetric, so the added links keep their score.
+const links: { movie: number; score: number }[][] = neighbors.map((ns) => [...ns]);
+neighbors.forEach((ns, m) => {
+  for (const n of ns) if (!links[n.movie].some((x) => x.movie === m)) links[n.movie].push({ movie: m, score: n.score });
+});
+links.forEach((ls) => ls.sort((a, b) => b.score - a.score));
+
 // Clusters ----------------------------------------------------------------------------
 // Spherical k-means: each movie joins the cluster whose average fingerprint it's
 // most similar to. Seeded, so reruns give the same clusters.
@@ -249,10 +262,10 @@ const noKeywords = movies.filter((m) => !rawFeatures(m).keyword.size).length;
 lines.push("", `Scenario 3: ${noKeywords} movies have no usable keywords; all ${N} still got a fingerprint, neighbors, and a cluster.`);
 
 // How the "similar movies" links connect ------------------------------------------------
-// Each movie links to its 10 nearest. Can you get from any movie to any other by
-// following those links?
+// Each movie links to its nearest movies, both ways. Can you get from any movie
+// to any other by following those links?
 
-const out = neighbors.map((ns) => ns.map((n) => n.movie));
+const out = links.map((ls) => ls.map((n) => n.movie));
 const inn: number[][] = Array.from({ length: N }, () => []);
 out.forEach((ns, m) => ns.forEach((o) => inn[o].push(m)));
 const titleOf = (m: number) => `${movies[m].title} (${movies[m].year})`;
@@ -339,7 +352,9 @@ for (const { size, g } of smallGroups.slice(0, 8)) {
   lines.push(`    cut-off group of ${size}: ${members.join(" · ")}${size > 4 ? " …" : ""}`);
 }
 lines.push(`- Reachable both ways by following links forwards: ${coreMembers.length} movies (${((100 * coreMembers.length) / N).toFixed(1)}%).`);
-lines.push(`- Never in anyone's top 10 (you can leave them, but no link leads to them): ${neverLinked} movies (${((100 * neverLinked) / N).toFixed(1)}%).`);
+lines.push(`- No link leads to them (you can leave them, but never land on them): ${neverLinked} movies (${((100 * neverLinked) / N).toFixed(1)}%).`);
+const linkCounts = links.map((ls) => ls.length).sort((a, b) => a - b);
+lines.push(`- Links per movie: ${NEIGHBORS} of its own nearest, plus any movie that listed it. Median ${linkCounts[N >> 1]}, most ${linkCounts[N - 1]}.`);
 lines.push(`- Within that two-way web, getting from one movie to another takes ${(hopTotal / hopCount).toFixed(1)} links on average, ${hopMax} at most (200 sampled starts).`);
 for (const [a, b] of [["Toy Story", "The Godfather"], ["The Notebook", "Mad Max: Fury Road"], ["Spirited Away", "Get Out"]]) {
   const from = movies.findIndex((m) => m.title === a), to = movies.findIndex((m) => m.title === b);
@@ -354,5 +369,37 @@ writeFileSync(reportFile, lines.join("\n"));
 console.log(`Report written to web/data/similarity-report.txt`);
 
 if (reportOnly) process.exit(0);
-console.error("Saving to the database isn't built yet. Run with --report-only.");
-process.exit(1);
+
+// Save --------------------------------------------------------------------------------------
+// Replaces the previous run's results. Neighbors and fingerprints go first, so the
+// clusters they point to can be removed.
+
+async function inBatches<T>(label: string, rows: T[], size: number, write: (batch: T[]) => PromiseLike<{ error: { message: string } | null }>) {
+  for (let i = 0; i < rows.length; i += size) {
+    const { error } = await write(rows.slice(i, i + size));
+    if (error) throw new Error(`Saving ${label}: ${error.message}`);
+    process.stdout.write(`\rSaving ${label}: ${Math.min(i + size, rows.length)}/${rows.length}`);
+  }
+  console.log();
+}
+
+for (const table of ["movie_neighbors", "movie_similarity", "movie_clusters"]) {
+  const { error } = await db.from(table).delete().not(table === "movie_clusters" ? "id" : "movie_id", "is", null);
+  if (error) throw new Error(`Clearing ${table}: ${error.message}`);
+}
+
+const computedAt = new Date().toISOString();
+await inBatches("clusters", clusters.filter((c) => c.size > 0), 100, (b) =>
+  db.from("movie_clusters").insert(b.map((c) => ({ id: c.id, label: c.label, size: c.size, examples: c.examples, computed_at: computedAt }))));
+await inBatches("fingerprints", movies.map((m, i) => i), 500, (b) =>
+  db.from("movie_similarity").insert(b.map((i) => ({
+    movie_id: movies[i].id,
+    cluster_id: cluster[i] + 1,
+    fingerprint: Object.fromEntries([...vecs[i].idx].map((f, k) => [featureNames[f], Math.round(vecs[i].val[k] * 1e4) / 1e4])),
+    computed_at: computedAt,
+  }))));
+const neighborRows = links.flatMap((ls, m) => ls.map((n, r) => ({
+  movie_id: movies[m].id, neighbor_id: movies[n.movie].id, rank: r + 1, score: Math.min(1, Math.max(0, Math.round(n.score * 1e4) / 1e4)),
+})));
+await inBatches("neighbors", neighborRows, 2000, (b) => db.from("movie_neighbors").insert(b));
+console.log(`Saved ${clusters.length} clusters, ${N} fingerprints, and ${neighborRows.length} neighbor links.`);

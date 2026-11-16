@@ -399,6 +399,13 @@ The tutorial reuses the current demo and its sample movies.
 3. **Given** I take the quiz twice with different answers (Horror, under 90 minutes, then Documentary, any length), **when** each pick appears, **then** the two picks are different movies.
 4. **Goes wrong:** **given** no movie meets all my Must haves, **when** the pick would appear, **then** I'm told what the closest movie misses without seeing its title, and I see it only if I agree.
 
+**Design notes for picking (Chris, 2026-11-16).** Rewrite the scenarios around these before building:
+
+- **Land with the quiz.** The quiz answers, favorites, and services set a "landing zone" of the movies that fit best. The first pick is drawn at random from that zone, with closer fits more likely. For example, answers that point at *Interstellar* could land on *Interstellar*, *Ad Astra*, or *Tenet*.
+- **Steer with feedback.** Each answer to a pick changes where the next jump goes. The **Not this one** reason sets the direction: "wrong mood" moves away in mood but stays close in genre, "dislike the genre" moves away in genre, "too intense" moves toward calmer movies, and "seen it" stays very close, since it was the right kind of movie. Consider asking "did you like it?" after **Seen it**, as a "more like this" signal. A **yes** ends the session, because the viewer starts watching.
+- **Randomize the jump within limits.** Both the direction and the distance of each jump are random, but kept in a sensible range of similarity. Jumps follow the links in `movie_neighbors` (CM-14: each movie's 30 nearest movies, linked both ways, so every movie can be reached). A jump never breaks a Must have and never repeats a movie in the session.
+- **Record each session's random seed and jumps,** so CM-16 can replay sessions and compare them fairly with the plain rules.
+
 ### CM-11: Random pick
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
@@ -507,6 +514,14 @@ Test data comes from viewers' favorites and personal ratings (CM-07, CM-12), plu
 1. **Given** test viewers with favorites and ratings, **when** we hide some of their 4- and 5-star movies and run both versions, **then** a report compares how often each version ranks a hidden movie in its top 10, plus how varied the picks are.
 2. **Given** the similarity version ranks hidden movies higher without making picks less varied, **when** the team reviews the report, **then** similarity is switched on. Otherwise it stays off, and the report says why.
 3. **Goes wrong:** **given** fewer than 20 test viewers, **when** the report runs, **then** it says the sample is too small to trust, instead of naming a winner.
+
+**Note (2026-11-16):** CM-10's picks are randomized (see its design notes). Compare the two versions over many replayed sessions using the seeds CM-10 records, not single picks.
+
+## Ideas for later
+
+Not yet stories. Turn them into stories when the team agrees.
+
+- **Keep exploring (from CM-14, 2026-11-16).** Every movie can reach every other by jumping between similar movies, 4 jumps apart on average and 7 at most. That would support a "more like this" trail from any movie, or a game: get from *Toy Story* to *The Godfather* in as few jumps as possible.
 
 ---
 

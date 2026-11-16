@@ -8,8 +8,10 @@ import {
   CORE, NO_ADJUSTMENTS, QUESTIONS, canNotify, followUps, isOpen, paidServices, randomPick, recommend, rationale,
   type Adjustments, type Answers, type Must, type QuestionKey, type Result, type Taste,
 } from "./engine";
-import { MovieLookup } from "./movie-search";
-import { MOVIES, SAMPLE_IMPORT, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
+import { MAX_FAVORITES, deleteSavedData, saveServicesToAccount, saveSetup, type Viewer } from "./account";
+import type { SearchHit } from "./catalog";
+import { MovieLookup, MovieSearch } from "./movie-search";
+import { MOVIES, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
 import {
   Chip, Heading, Icon, MovieCard, Panel, Poster, PrimaryButton, SampleTag, SecondaryButton, Stars, TextButton, Toggle,
   WatchLink, inputClass,
@@ -20,7 +22,7 @@ type View = "home" | "tutorial" | "onboarding" | "account" | "questions" | "near
 
 const pathFor = (v: View, tutorial: boolean) => (tutorial ? "/tutorial" : (URL_VIEWS as readonly string[]).includes(v) ? `/${v}` : "/");
 const viewFor = (path: string, tutorial: boolean): View => tutorial ? "tutorial" : URL_VIEWS.find((v) => `/${v}` === path) ?? "home";
-type OnboardStep = "account" | "services" | "letterboxd" | "favorites" | "finish";
+type OnboardStep = "services" | "favorites" | "finish";
 type Pending = { kind: "alert"; movieId: string } | { kind: "save-pick" };
 type Delivery = "email" | "inapp" | "both";
 type Alert = { id: number; movieId: string; delivery: Delivery; services: ServiceId[] };
@@ -46,19 +48,21 @@ const REJECT_REASONS = [
 let nextId = 1;
 const stamp = () => new Date().toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-export default function CineMatch({ userEmail, initialView = "home" }: { userEmail: string | null; initialView?: View }) {
+export default function CineMatch({ viewer, initialView = "home" }: { viewer: Viewer | null; initialView?: View }) {
   const router = useRouter();
   const isTutorial = initialView === "tutorial";
-  const [view, setView] = useState<View>(initialView);
-  const [onboardStep, setOnboardStep] = useState<OnboardStep>("account");
+  // A viewer who hasn't finished or skipped setup gets it on Home (CM-07).
+  const [view, setView] = useState<View>(initialView === "home" && viewer && !viewer.setupDone ? "onboarding" : initialView);
+  const [onboardStep, setOnboardStep] = useState<OnboardStep>("services");
   const [detailsId, setDetailsId] = useState<string | null>(null);
 
-  // Account (a real login, CM-03) and saved taste (sample, in memory only)
-  const [user, setUser] = useState<string | null>(userEmail);
-  const [onboarded, setOnboarded] = useState(false);
-  const [services, setServices] = useState<ServiceId[]>([]);
+  // Account (a real login, CM-03) and what's saved to it (CM-07). History,
+  // ratings, and alerts are still sample data kept in memory.
+  const [user, setUser] = useState<string | null>(viewer?.email ?? null);
+  const [onboarded, setOnboarded] = useState(viewer?.setupDone ?? false);
+  const [services, setServices] = useState<ServiceId[]>(viewer?.services ?? []);
   const [imported, setImported] = useState<Import | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<SearchHit[]>(viewer?.favorites ?? []);
   const [markedWatched, setMarkedWatched] = useState<string[]>([]);
   const [myRatings, setMyRatings] = useState<Record<string, number>>({});
   const [log, setLog] = useState<LogEntry[]>([]); // guests' entries are kept for the session and saved on sign-in
@@ -84,13 +88,16 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   // Delete account
   const [deleteReturn, setDeleteReturn] = useState<View>("home");
   const [deleteText, setDeleteText] = useState("");
+  const [deleteFailed, setDeleteFailed] = useState(false);
 
   const taste: Taste = useMemo(
     () => isTutorial
       ? { services: [], favorites: [], ratings: {}, watchlist: [], watched: [] }
       : {
           services,
-          favorites,
+          // The quiz still runs on the sample movies (until CM-09 and CM-10), so
+          // it can only use favorites from that catalog. Real ones are skipped.
+          favorites: favorites.map((f) => f.id).filter((id) => MOVIES.some((m) => m.id === id)),
           ratings: imported?.ratings ?? {},
           watchlist: imported?.watchlist ?? [],
           watched: [...new Set([...(imported?.watched ?? []), ...markedWatched])],
@@ -173,14 +180,21 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   }
 
   // Wipes everything tied to the account and logs out. The email stays on the
-  // approved list, so logging in again starts with an empty account (see CM-03
-  // in the PRD). Saved data is in-app only for now; once it's stored in the
-  // database, this must delete those rows too.
+  // approved list, so logging in again starts with an empty account and setup
+  // (see CM-03 in the PRD). Services and favorites are deleted from the
+  // database; history, ratings, and alerts are still in memory only.
   async function deleteAccount() {
     if (deleteText.trim() !== "DELETE") return;
+    setDeleteFailed(false);
+    try {
+      await deleteSavedData();
+    } catch {
+      setDeleteFailed(true); // nothing is cleared or logged out, so the viewer can try again
+      return;
+    }
     setUser(null);
     setOnboarded(false);
-    setOnboardStep("account");
+    setOnboardStep("services");
     setServices([]);
     setImported(null);
     setFavorites([]);
@@ -299,7 +313,8 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
   }
 
   // Random's cached pick was chosen with the old services, so the next visit rolls fresh.
-  function saveServices(next: ServiceId[]) {
+  async function saveServices(next: ServiceId[]) {
+    await saveServicesToAccount(next); // throws on failure, so Settings can say so
     setServices(next);
     setRandomId(null);
   }
@@ -398,9 +413,9 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
               <Panel className="flex flex-col gap-4 border-dashed sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="font-display text-[22px]">Set up your taste <span className="text-base text-plum">(optional)</span></h2>
-                  <p className="text-plum">Services, a Letterboxd sample import, and up to five favorites. Skip it and I&apos;ll still find you something.</p>
+                  <p className="text-plum">Your streaming services and up to five favorites. Skip it and I&apos;ll still find you something.</p>
                 </div>
-                <SecondaryButton onClick={() => { setOnboardStep(user ? "services" : "account"); go("onboarding"); }}>Set up</SecondaryButton>
+                <SecondaryButton onClick={() => { setOnboardStep("services"); go("onboarding"); }}>Set up</SecondaryButton>
               </Panel>
             )}
 
@@ -433,18 +448,13 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
           <Onboarding
             step={onboardStep}
             setStep={setOnboardStep}
-            user={user}
-            onSignIn={() => setUser(DEMO_EMAIL)}
             services={services}
-            setServices={setServices}
-            imported={imported}
-            setImported={setImported}
             favorites={favorites}
-            setFavorites={setFavorites}
+            onSaved={(s, f) => { setServices(s); setFavorites(f); setOnboarded(true); }}
             pending={pending}
             onFinish={resume}
-            onFind={() => { setOnboarded(true); setPending(null); startFlow(); }}
-            onSkipAll={() => { setOnboarded(true); go("home"); }}
+            onFind={() => { setPending(null); startFlow(); }}
+            onHome={() => go("home")}
           />
         )}
 
@@ -692,7 +702,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
               setDraftAlert(null);
             }}
             onRemove={(id) => setAlerts(alerts.filter((a) => a.id !== id))}
-            onSetup={() => { setOnboardStep(user ? "services" : "account"); go("onboarding"); }}
+            onSetup={() => { setOnboardStep("services"); go("onboarding"); }}
             onDetails={setDetailsId}
             onWatch={watch}
           />
@@ -706,7 +716,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
                 <p className="font-medium">What gets deleted</p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-[15px]">
                   <li>{services.length} streaming {services.length === 1 ? "service" : "services"}</li>
-                  <li>{favorites.length} {favorites.length === 1 ? "favorite" : "favorites"}{imported ? " and your Letterboxd import" : ""}</li>
+                  <li>{favorites.length} {favorites.length === 1 ? "favorite" : "favorites"}</li>
                   <li>{log.length} history {log.length === 1 ? "entry" : "entries"} and {Object.keys(myRatings).length} of your ratings</li>
                   <li>{alerts.length} {alerts.length === 1 ? "alert" : "alerts"}</li>
                 </ul>
@@ -724,6 +734,7 @@ export default function CineMatch({ userEmail, initialView = "home" }: { userEma
                 />
               </label>
               <p id="delete-help" className="text-[13px] text-plum">The Delete button turns on only when the box says DELETE, in capitals.</p>
+              {deleteFailed && <p role="alert" className="text-[15px] font-medium text-[#9e4740]">Couldn&apos;t delete your saved data, so nothing was changed. Try again in a moment.</p>}
               <div className="flex flex-wrap gap-2">
                 {/* Darker brick (#9e4740): 5.8:1 with the ivory label. Plain brick is 4.39:1, below 4.5 (PRD style guide). */}
                 <PrimaryButton className="bg-[#9e4740]! hover:bg-[#8a3d37]!" disabled={deleteText.trim() !== "DELETE"} onClick={deleteAccount}>Delete account</PrimaryButton>
@@ -888,110 +899,84 @@ function ServicePicker({ selected, onChange }: { selected: ServiceId[]; onChange
   );
 }
 
-// Edits a draft; saved services change only on Save. Leaving unmounts the draft.
-function Settings({ saved, onSave, onCancel }: { saved: ServiceId[]; onSave: (s: ServiceId[]) => void; onCancel: () => void }) {
+// Edits a draft; saved services change only on Save, which writes them to the
+// account (CM-07). Leaving unmounts the draft.
+function Settings({ saved, onSave, onCancel }: { saved: ServiceId[]; onSave: (s: ServiceId[]) => Promise<void>; onCancel: () => void }) {
   const [draft, setDraft] = useState<ServiceId[]>(saved);
-  const [justSaved, setJustSaved] = useState(false);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  async function save() {
+    setStatus("saving");
+    try {
+      await onSave(draft);
+      setStatus("saved");
+    } catch {
+      setStatus("failed");
+    }
+  }
   return (
     <div className="mx-auto max-w-2xl">
       <Heading eyebrow="Settings" title="Your streaming services" subtitle="I'll favor movies you can already watch. US region." />
-      <ServicePicker selected={draft} onChange={(s) => { setDraft(s); setJustSaved(false); }} />
+      <ServicePicker selected={draft} onChange={(s) => { setDraft(s); setStatus("idle"); }} />
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <PrimaryButton onClick={() => { onSave(draft); setJustSaved(true); }}>Save changes</PrimaryButton>
+        <PrimaryButton onClick={save} disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save changes"}</PrimaryButton>
         <SecondaryButton onClick={onCancel}>Cancel</SecondaryButton>
-        {justSaved && <span role="status" className="inline-flex min-h-11 items-center text-[14px] text-plum">✓ Saved</span>}
+        {status === "saved" && <span role="status" className="inline-flex min-h-11 items-center text-[14px] text-plum">✓ Saved</span>}
       </div>
+      {status === "failed" && <p role="alert" className="mt-3 text-[15px] font-medium text-[#9e4740]">Couldn&apos;t save your services. Check your connection and try again.</p>}
     </div>
   );
 }
 
+// Account setup (CM-07): services, then up to five favorites, then a summary.
+// Choices are drafts until the viewer finishes or skips; then both are saved
+// together and setup isn't offered again.
 function Onboarding(props: {
   step: OnboardStep;
   setStep: (s: OnboardStep) => void;
-  user: string | null;
-  onSignIn: () => void;
   services: ServiceId[];
-  setServices: (s: ServiceId[]) => void;
-  imported: Import | null;
-  setImported: (i: Import | null) => void;
-  favorites: string[];
-  setFavorites: (f: string[]) => void;
+  favorites: SearchHit[];
+  onSaved: (services: ServiceId[], favorites: SearchHit[]) => void;
   pending: Pending | null;
   onFinish: () => void;
   onFind: () => void;
-  onSkipAll: () => void;
+  onHome: () => void;
 }) {
-  const { step, setStep, user, services, setServices, favorites, setFavorites } = props;
-  const [username, setUsername] = useState(props.imported?.username ?? "");
-  const [preview, setPreview] = useState(false);
-  const [search, setSearch] = useState("");
-  const [picked, setPicked] = useState<string[]>(favorites);
-  const order: OnboardStep[] = ["account", "services", "letterboxd", "favorites", "finish"];
-  const idx = order.indexOf(step);
-  const next = () => setStep(order[idx + 1]);
-  const handle = username.trim().replace(/^https?:\/\/(www\.)?letterboxd\.com\//, "").replace(/\/$/, "");
+  const { step, setStep } = props;
+  const [services, setServices] = useState<ServiceId[]>(props.services);
+  const [picked, setPicked] = useState<SearchHit[]>(props.favorites);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const full = picked.length >= MAX_FAVORITES;
+
+  async function save(finalServices: ServiceId[], finalFavorites: SearchHit[]) {
+    setSaving(true);
+    setSaveFailed(false);
+    try {
+      await saveSetup(finalServices, finalFavorites.map((f) => f.id));
+    } catch {
+      setSaveFailed(true);
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    setPicked(finalFavorites);
+    props.onSaved(finalServices, finalFavorites);
+    // Skipping both steps goes straight back (scenario 3); otherwise show the summary.
+    if (!finalServices.length && !finalFavorites.length) {
+      if (props.pending) props.onFinish();
+      else props.onHome();
+    } else setStep("finish");
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
-      <p className="text-[14px] font-medium text-plum">Setup · step {idx + 1} of {order.length} · all optional</p>
-
-      {step === "account" && (
-        <>
-          <Heading title="Start with taste" subtitle="All setup is optional. Skip it and try recommendations right away." />
-          <Panel className="space-y-3">
-            <p>An account saves your favorites, history, and alerts.</p>
-            <SampleTag>Sample account: no real sign-in happens</SampleTag>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <PrimaryButton onClick={() => { props.onSignIn(); next(); }}>Create sample account</PrimaryButton>
-              <SecondaryButton onClick={next}>Continue as guest</SecondaryButton>
-              <TextButton onClick={props.onSkipAll}>Skip setup</TextButton>
-            </div>
-          </Panel>
-        </>
-      )}
+      {step !== "finish" && <p className="text-[14px] font-medium text-plum">Setup · step {step === "services" ? 1 : 2} of 2 · all optional</p>}
 
       {step === "services" && (
         <>
           <Heading title="Which services do you have?" subtitle="I'll favor movies you can already watch. US region." />
           <ServicePicker selected={services} onChange={setServices} />
-          <StepButtons onNext={next} nextLabel="Next" onSkip={() => { setServices([]); next(); }} />
-        </>
-      )}
-
-      {step === "letterboxd" && (
-        <>
-          <Heading title="Bring your Letterboxd taste" subtitle="Ratings, watched history, and watchlist help me rank picks." />
-          <Panel className="space-y-4">
-            <SampleTag>Sample import: the preview shows illustrative data, not your real account</SampleTag>
-            {props.imported ? (
-              <p>✓ Imported a sample profile for <b>{props.imported.username}</b>: {Object.keys(props.imported.ratings).length} ratings, {props.imported.watched.length} watched, {props.imported.watchlist.length} on the watchlist.</p>
-            ) : (
-              <>
-                <label className="block">
-                  <span className="mb-1 block text-[15px] font-medium">Letterboxd username or profile link</span>
-                  <input value={username} onChange={(e) => { setUsername(e.target.value); setPreview(false); }} placeholder="e.g. moviebuff or letterboxd.com/moviebuff" className={inputClass} />
-                </label>
-                {!preview ? (
-                  <SecondaryButton disabled={!handle} onClick={() => setPreview(true)}>Preview sample import</SecondaryButton>
-                ) : (
-                  <div className="space-y-3 rounded-xl border-2 border-dashed border-plum/40 p-4">
-                    <p className="font-medium">Preview for {handle} (sample)</p>
-                    <PreviewList title="Ratings" items={Object.entries(SAMPLE_IMPORT.ratings).map(([id, n]) => `${movieById(id).title}: ${n}★`)} />
-                    <PreviewList title="Watched" items={SAMPLE_IMPORT.watched.map((id) => movieById(id).title)} />
-                    <PreviewList title="Watchlist" items={SAMPLE_IMPORT.watchlist.map((id) => movieById(id).title)} />
-                    {!user && <p className="text-[14px] text-plum">Saving an import needs an account.</p>}
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <PrimaryButton onClick={() => { if (!user) props.onSignIn(); props.setImported({ username: handle, ...SAMPLE_IMPORT }); }}>
-                        {user ? "Confirm import" : "Create account and confirm"}
-                      </PrimaryButton>
-                      <SecondaryButton onClick={() => setPreview(false)}>Cancel</SecondaryButton>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </Panel>
-          <StepButtons onNext={next} nextLabel="Next" onSkip={next} />
+          <StepButtons onNext={() => setStep("favorites")} nextLabel="Next" onSkip={() => { setServices([]); setStep("favorites"); }} />
         </>
       )}
 
@@ -1001,51 +986,39 @@ function Onboarding(props: {
           <Panel className="space-y-4">
             <div className="flex flex-wrap gap-2" aria-live="polite">
               {picked.length === 0 && <p className="text-plum">No favorites picked yet.</p>}
-              {picked.map((id) => (
-                <span key={id} className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-teal bg-cream pl-4 pr-1 text-[15px] font-medium">
-                  {movieById(id).title}
-                  <button type="button" aria-label={`Remove ${movieById(id).title}`} onClick={() => setPicked(picked.filter((x) => x !== id))} className="h-9 w-9 rounded-full hover:bg-ivory">×</button>
+              {picked.map((m) => (
+                <span key={m.id} className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-teal bg-cream pl-4 pr-1 text-[15px] font-medium">
+                  {m.title} <span className="font-normal text-plum">({m.year})</span>
+                  <button type="button" aria-label={`Remove ${m.title}`} onClick={() => setPicked(picked.filter((x) => x.id !== m.id))} className="h-9 w-9 rounded-full hover:bg-ivory">×</button>
                 </span>
               ))}
             </div>
-            <p className="text-[14px] text-plum">{picked.length} of 5 picked</p>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search the sample catalog" aria-label="Search movies" className={inputClass} />
-            <ul className="max-h-72 space-y-1 overflow-y-auto">
-              {MOVIES.filter((m) => m.title.toLowerCase().includes(search.toLowerCase())).map((m) => {
-                const on = picked.includes(m.id);
-                return (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      disabled={!on && picked.length >= 5}
-                      onClick={() => setPicked(on ? picked.filter((x) => x !== m.id) : [...picked, m.id])}
-                      className="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-left hover:bg-sand disabled:opacity-40"
-                    >
-                      <span>{m.title} <span className="text-[13px] text-plum">({m.year})</span></span>
-                      <span className="text-[14px] font-medium">{on ? "✓ Picked" : "Add"}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-            {!user && picked.length > 0 && <p className="text-[14px] text-plum">Saving favorites needs an account.</p>}
+            <p role="status" className="text-[14px] font-medium text-plum">
+              {picked.length} of {MAX_FAVORITES} picked{full ? ". Remove one to add a different movie." : ""}
+            </p>
+            <MovieSearch
+              label="Find a favorite"
+              onSelect={(m) => { if (!full && !picked.some((x) => x.id === m.id)) setPicked([...picked, m]); }}
+              action={(m) => (picked.some((x) => x.id === m.id) ? { label: "✓ Picked", disabled: true } : full ? { label: "Add", disabled: true } : { label: "Add" })}
+            />
           </Panel>
           <StepButtons
-            onNext={() => { if (picked.length && !user) props.onSignIn(); setFavorites(picked); next(); }}
-            nextLabel={picked.length ? (user ? "Save favorites" : "Create account and save") : "Next"}
-            onSkip={() => { setPicked([]); setFavorites([]); next(); }}
+            onNext={() => save(services, picked)}
+            nextLabel={saving ? "Saving…" : "Finish"}
+            onSkip={() => save(services, [])}
+            onBack={() => setStep("services")}
+            busy={saving}
           />
+          {saveFailed && <p role="alert" className="mt-3 text-[15px] font-medium text-[#9e4740]">Couldn&apos;t save your setup. Check your connection and try again.</p>}
         </>
       )}
 
       {step === "finish" && (
         <>
-          <Heading title="You're all set" subtitle="Here's what I'll use. Editing these comes in a later version." />
+          <Heading title="You're all set" subtitle="Saved to your account. You can change your services in Settings." />
           <Panel className="space-y-3">
-            <SummaryRow label="Services" value={services.length ? services.map((s) => serviceById(s).name).join(", ") : "Skipped: I'll show every way to watch"} />
-            <SummaryRow label="Letterboxd" value={props.imported ? `${props.imported.username} (sample import)` : "Skipped"} />
-            <SummaryRow label="Favorites" value={favorites.length ? favorites.map((id) => movieById(id).title).join(", ") : "Skipped"} />
-            <SummaryRow label="Account" value={user ? `${user} (sample)` : "Guest"} />
+            <SummaryRow label="Services" value={props.services.length ? props.services.map((s) => serviceById(s).name).join(", ") : "Skipped: I'll show every way to watch"} />
+            <SummaryRow label="Favorites" value={props.favorites.length ? props.favorites.map((m) => `${m.title} (${m.year})`).join(", ") : "Skipped"} />
           </Panel>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             {props.pending ? (
@@ -1056,6 +1029,8 @@ function Onboarding(props: {
                 <SecondaryButton onClick={props.onFinish}>Go to Home</SecondaryButton>
               </>
             )}
+            {/* Reopens the steps with the saved choices; finishing again saves the changes. */}
+            <TextButton onClick={() => setStep("services")}>Change my picks</TextButton>
           </div>
         </>
       )}
@@ -1063,20 +1038,14 @@ function Onboarding(props: {
   );
 }
 
-function StepButtons({ onNext, nextLabel, onSkip }: { onNext: () => void; nextLabel: string; onSkip: () => void }) {
+function StepButtons({ onNext, nextLabel, onSkip, onBack, busy = false }: { onNext: () => void; nextLabel: string; onSkip: () => void; onBack?: () => void; busy?: boolean }) {
   return (
     <div className="mt-6 flex items-center justify-between gap-3">
-      <TextButton onClick={onSkip}>Skip</TextButton>
-      <PrimaryButton onClick={onNext}>{nextLabel}</PrimaryButton>
-    </div>
-  );
-}
-
-function PreviewList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <p className="text-[14px] font-medium text-plum">{title} ({items.length})</p>
-      <p className="text-[15px]">{items.join(" · ")}</p>
+      <div className="flex gap-4">
+        {onBack && <TextButton onClick={onBack} disabled={busy}>Back</TextButton>}
+        <TextButton onClick={onSkip} disabled={busy}>Skip</TextButton>
+      </div>
+      <PrimaryButton onClick={onNext} disabled={busy}>{nextLabel}</PrimaryButton>
     </div>
   );
 }

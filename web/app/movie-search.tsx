@@ -1,7 +1,7 @@
 'use client'
 
 // Movie search and details on the real catalog (CM-06). Account setup (CM-07)
-// and Alerts (CM-15) reuse MovieSearch with their own action.
+// reuses MovieSearch to add favorites, and Alerts (CM-15) can do the same.
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -12,9 +12,9 @@ import { Panel, SecondaryButton, inputClass } from "./ui";
 
 type Status = "idle" | "loading" | "done" | "error";
 
-export function MovieSearch({ onSelect, actionLabel = "Details", label = "Search for a movie" }: {
+export function MovieSearch({ onSelect, action = () => ({ label: "Details" }), label = "Search for a movie" }: {
   onSelect: (hit: SearchHit) => void;
-  actionLabel?: string;
+  action?: (hit: SearchHit) => { label: string; disabled?: boolean }; // what choosing each result does
   label?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -56,21 +56,25 @@ export function MovieSearch({ onSelect, actionLabel = "Details", label = "Search
       </p>
       {!short && hits.length > 0 && (
         <ul className="max-h-96 space-y-1 overflow-y-auto">
-          {hits.map((m) => (
-            <li key={m.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(m)}
-                className="flex min-h-14 w-full items-center gap-3 rounded-lg px-2 py-1 text-left hover:bg-sand"
-              >
-                <Thumb hit={m} />
-                <span className="flex-1">
-                  {m.title} <span className="text-[13px] text-plum">({m.year})</span>
-                </span>
-                <span className="text-[14px] font-medium">{actionLabel}</span>
-              </button>
-            </li>
-          ))}
+          {hits.map((m) => {
+            const a = action(m);
+            return (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  disabled={a.disabled}
+                  onClick={() => onSelect(m)}
+                  className="flex min-h-14 w-full items-center gap-3 rounded-lg px-2 py-1 text-left hover:bg-sand disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  <Thumb hit={m} />
+                  <span className="flex-1">
+                    {m.title} <span className="text-[13px] text-plum">({m.year})</span>
+                  </span>
+                  <span className="text-[14px] font-medium">{a.label}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

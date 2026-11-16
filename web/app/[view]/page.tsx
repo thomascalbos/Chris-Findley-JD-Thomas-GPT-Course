@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { getViewerEmail } from "@/lib/supabase-server";
+import { getViewer } from "@/lib/supabase-server";
 import CineMatch from "../cinematch";
 import { URL_VIEWS } from "../views";
 
@@ -24,5 +24,5 @@ async function App({ params }: { params: PageProps<"/[view]">["params"] }) {
   if (!match) notFound();
   // CM-05 is deliberately account-free and must not depend on Supabase being
   // configured just to render its sample experience.
-  return <CineMatch userEmail={match === "tutorial" ? null : await getViewerEmail()} initialView={match} />;
+  return <CineMatch viewer={match === "tutorial" ? null : await getViewer()} initialView={match} />;
 }

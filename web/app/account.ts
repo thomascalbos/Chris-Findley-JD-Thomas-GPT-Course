@@ -56,6 +56,11 @@ export async function deleteSavedData() {
   const db = getSupabaseBrowser();
   const { error: favoritesError } = await db.from("favorites").delete().neq("movie_id", "");
   if (favoritesError) throw favoritesError;
+  // Watched movies and pick history (CM-10).
+  const { error: watchedError } = await db.from("watched").delete().neq("movie_id", "");
+  if (watchedError) throw watchedError;
+  const { error: eventsError } = await db.from("pick_events").delete().gt("id", 0);
+  if (eventsError) throw eventsError;
   const { error: profileError } = await db.from("profiles").delete().not("user_id", "is", null);
   if (profileError) throw profileError;
 }

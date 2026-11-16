@@ -4,7 +4,7 @@
 // CM-09 counts the matches; CM-10 ranks them for the pick.
 
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { eraRange, isOpen, type Answers, type QuestionKey } from "./engine";
+import { eraRange, isOpen, type Answers, type Must, type QuestionKey } from "./engine";
 import type { ServiceId } from "./movies";
 
 export type QuizFilter = {
@@ -38,6 +38,12 @@ export function quizFilter(answers: Answers, asked: QuestionKey[], services: Ser
   if (attention) f.attention = attention[0];
   if (services.length) f.services = services;
   return f;
+}
+
+// Only the answers marked Must have (CM-10). Picks are drawn from every movie
+// that meets these; the other answers rank them instead of ruling them out.
+export function mustHaveFilter(answers: Answers, asked: QuestionKey[], must: Must, services: ServiceId[]): QuizFilter {
+  return quizFilter(answers, asked.filter((k) => must[k]), must.services ? services : []);
 }
 
 // How many real movies fit, without fetching them.

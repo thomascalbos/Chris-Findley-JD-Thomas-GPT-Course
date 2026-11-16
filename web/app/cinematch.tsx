@@ -1,18 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import {
-  CORE, NO_ADJUSTMENTS, QUESTIONS, canNotify, followUps, isOpen, paidServices, randomPick, recommend, rationale,
+  CORE, NO_ADJUSTMENTS, QUESTIONS, canNotify, followUps, isOpen, paidServices, randomPick, rankPool, recommend, rationale,
   type Adjustments, type Answers, type Must, type QuestionKey, type Result, type Taste,
 } from "./engine";
 import { MAX_FAVORITES, deleteSavedData, saveServicesToAccount, saveSetup, type Viewer } from "./account";
 import type { SearchHit } from "./catalog";
 import { MatchCount } from "./match-count";
 import { MovieLookup, MovieSearch } from "./movie-search";
-import { quizFilter } from "./quiz-filter";
+import { loadNeighbors, loadPool, loadWatched, logPick, saveWatched } from "./picks";
+import { mustHaveFilter, quizFilter } from "./quiz-filter";
+import { jump, land, newSeed, seededRng, type Feedback, type Jump, type Rng } from "./walk";
 import { MOVIES, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
 import {
   Chip, Heading, Icon, MovieCard, Panel, Poster, PrimaryButton, SampleTag, SecondaryButton, Stars, TextButton, Toggle,
@@ -81,6 +83,15 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
   const [adjustments, setAdjustments] = useState<Adjustments>(NO_ADJUSTMENTS);
   const [result, setResult] = useState<Result | null>(null);
   const [flowStart, setFlowStart] = useState(0);
+
+  // Real picks (CM-10) for logged-in viewers: the movies that meet tonight's Must
+  // haves, the session's random seed, and how many picks it has shown. The
+  // tutorial and logged-out visitors keep the sample movies.
+  const session = useRef<{ id: string; seed: number; rng: Rng; step: number; pool: Movie[] } | null>(null);
+  const [finding, setFinding] = useState(false);
+  const [findFailed, setFindFailed] = useState(false);
+  const [askLiked, setAskLiked] = useState(false);
+  const real = !isTutorial && !!viewer && !!user;
 
   // Random page and alert draft
   const [randomId, setRandomId] = useState<string | null>(null);
@@ -269,7 +280,9 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
     if (result?.kind !== "nearmiss") return;
     const movie = result.movie;
     const why = rationale(movie, answers, steps, taste, services);
-    setResult({ kind: "pick", movie, rationale: `${why} It misses your Must have: ${result.misses.join("; ")}.` });
+    const text = `${why} It misses your Must have: ${result.misses.join("; ")}.`;
+    if (real) return showPick(movie, text, exclude, { from: "", band: "landing" }, "closest match, with your OK");
+    setResult({ kind: "pick", movie, rationale: text });
     setExclude([...exclude, movie.id]);
     addLog(movie.id, "Recommended (closest match, with your OK)");
     go("pick");
@@ -301,13 +314,91 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
     }
     if (reason === "intense") adj.maxIntensity = Math.max(1, pick.intensity - 1);
     setAdjustments(adj);
+    if (real) {
+      const s = session.current;
+      if (s) void logPick({ sessionId: s.id, seed: s.seed, step: s.step, movieId: pick.id, action: "not_this_one", detail: reason });
+      if (reason === "seen") saveWatched(pick.id, null).catch(() => {}); // kept for the session either way
+      void nextPick({ kind: "not_this_one", reason }, adj, nextTaste);
+      return;
+    }
     run(exclude, adj, nextTaste);
+  }
+
+  // ----- Real picks (CM-10) -----
+
+  function showPick(movie: Movie, text: string, nextExclude: string[], j: Jump, note?: string) {
+    const s = session.current!;
+    s.step += 1;
+    setResult({ kind: "pick", movie, rationale: text });
+    setExclude([...nextExclude, movie.id]);
+    setAskLiked(false);
+    addLog(movie.id, note ? `Recommended (${note})` : "Recommended");
+    void logPick({ sessionId: s.id, seed: s.seed, step: s.step, movieId: movie.id, action: "shown", jump: j });
+    go("pick");
+  }
+
+  // Quiz finished: load every movie that meets the Must haves, then land on one
+  // of the best fits at random.
+  async function startPicks() {
+    setFinding(true);
+    setFindFailed(false);
+    try {
+      const [pool, saved] = await Promise.all([loadPool(mustHaveFilter(answers, steps, must, services)), loadWatched()]);
+      const seed = newSeed();
+      session.current = { id: crypto.randomUUID(), seed, rng: seededRng(seed), step: 0, pool };
+      const nextTaste = { ...taste, watched: [...new Set([...taste.watched, ...saved])] };
+      if (saved.length) setMarkedWatched((w) => [...new Set([...w, ...saved])]);
+      const input = { answers, asked: steps, must, taste: nextTaste, services, includeRewatches, exclude: [], adjustments: NO_ADJUSTMENTS };
+      const { eligible, nearMiss, why } = rankPool(input, pool);
+      const landed = land(eligible, session.current.rng);
+      if (landed) return showPick(landed.movie, why(landed.movie), [], { from: "", band: "landing" });
+      // Nothing meets every Must have: find the closest movie among the popular ones.
+      const r = pool.length ? nearMiss() : rankPool(input, await loadPool({})).nearMiss();
+      setResult(r);
+      go(r.kind === "nearmiss" ? "nearmiss" : "empty");
+    } catch {
+      setFindFailed(true);
+    } finally {
+      setFinding(false);
+    }
+  }
+
+  // After feedback: jump along the current pick's similar movies (CM-14), or land
+  // again on the whole pool if none of them qualifies.
+  async function nextPick(feedback: Feedback, adj: Adjustments, nextTaste: Taste) {
+    const s = session.current;
+    if (!s || !pick) return;
+    const input = { answers, asked: steps, must, taste: nextTaste, services, includeRewatches, exclude, adjustments: adj };
+    const { eligible, nearMiss, why } = rankPool(input, s.pool);
+    if (!eligible.length) {
+      const r = nearMiss();
+      setResult(r.kind === "nearmiss" ? r : { kind: "empty" });
+      go(r.kind === "nearmiss" ? "nearmiss" : "empty");
+      return;
+    }
+    const neighbors = await loadNeighbors(pick.id).catch(() => []);
+    const j = jump(pick, feedback, neighbors, eligible, s.rng);
+    if (j) return showPick(j.pick.movie, why(j.pick.movie), exclude, j.jump);
+    const landed = land(eligible, s.rng)!;
+    showPick(landed.movie, why(landed.movie), exclude, { from: pick.id, band: "landing", widened: true });
+  }
+
+  function alreadyWatched(liked: boolean | null) {
+    if (!pick || !session.current) return;
+    const s = session.current;
+    addLog(pick.id, `Already watched${liked === true ? ", liked it" : liked === false ? ", didn't like it" : ""}`);
+    void logPick({ sessionId: s.id, seed: s.seed, step: s.step, movieId: pick.id, action: "already_watched", detail: liked === null ? undefined : liked ? "liked" : "disliked" });
+    saveWatched(pick.id, liked).catch(() => {}); // kept for the session either way
+    setMarkedWatched((w) => [...w, pick.id]);
+    void nextPick({ kind: "already_watched", liked }, adjustments, { ...taste, watched: [...taste.watched, pick.id] });
   }
 
   function watch(movie: Movie, service: ServiceId) {
     if (isTutorial) return;
     const secs = flowStart && pick?.id === movie.id ? ` after ${Math.round((Date.now() - flowStart) / 1000)}s` : "";
     addLog(movie.id, `Watch handoff to ${serviceById(service).name}${secs}`);
+    const s = session.current;
+    if (real && s && pick?.id === movie.id) void logPick({ sessionId: s.id, seed: s.seed, step: s.step, movieId: movie.id, action: "watch", detail: service });
   }
 
   function notify(movieId: string) {
@@ -534,10 +625,13 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
 
               <div className="mt-6 flex items-center justify-between gap-3">
                 <SecondaryButton onClick={() => (step === 0 ? go(isTutorial ? "tutorial" : "home") : setStep(step - 1))}>Back</SecondaryButton>
-                <PrimaryButton disabled={!value.length} onClick={() => (last ? run([], NO_ADJUSTMENTS) : setStep(step + 1))}>
-                  {last ? "Find my movie" : isCore ? "Next" : "Next refinement"}
+                <PrimaryButton disabled={!value.length || finding} onClick={() => (last ? (real ? void startPicks() : run([], NO_ADJUSTMENTS)) : setStep(step + 1))}>
+                  {last ? (finding ? "Finding your movie…" : "Find my movie") : isCore ? "Next" : "Next refinement"}
                 </PrimaryButton>
               </div>
+              {findFailed && last && (
+                <p role="alert" className="mt-3 text-[15px] text-brick">I couldn&apos;t reach the movie catalog just now. Your answers are kept; try Find my movie again.</p>
+              )}
             </div>
           );
         })()}
@@ -547,7 +641,7 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
             <Heading eyebrow="Almost" title="Nothing checks every Must have" />
             <Panel className="space-y-4">
               <p>
-                The closest movie in the sample catalog fits most of your answers, but {result.misses.join("; ")}.
+                The closest movie {real ? "in the catalog" : "in the sample catalog"} fits most of your answers, but {result.misses.join("; ")}.
               </p>
               <p className="text-plum">Want to see it anyway? I won&apos;t show the title unless you say so.</p>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -560,7 +654,7 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
 
         {view === "empty" && (
           <div className="mx-auto max-w-2xl">
-            <Heading eyebrow="No more picks" title="I've run out of sample movies for these answers" subtitle="Every title that fits has been shown or is marked watched." />
+            <Heading eyebrow="No more picks" title={real ? "I've run out of movies for these answers" : "I've run out of sample movies for these answers"} subtitle="Every title that fits has been shown or is marked watched." />
             <div className="flex flex-col gap-2 sm:flex-row">
               <PrimaryButton onClick={adjustAnswers}>Adjust my answers</PrimaryButton>
               {!includeRewatches && taste.watched.length > 0 && (
@@ -577,6 +671,7 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
               <WatchLink movie={result.movie} services={isTutorial ? [] : services} onWatch={(s) => watch(result.movie, s)} />
               <div className="flex flex-wrap gap-2">
                 <SecondaryButton onClick={() => go("reject")}>Not this one</SecondaryButton>
+                {real && <SecondaryButton onClick={() => setAskLiked(true)} aria-expanded={askLiked}>Already watched</SecondaryButton>}
                 {isTutorial ? (
                   <>
                     <SecondaryButton onClick={() => setTutorialNotice("alert")}>Create alert</SecondaryButton>
@@ -589,6 +684,17 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
                   <TextButton onClick={() => askForAccount({ kind: "save-pick" })}>Save to history</TextButton>
                 ))}
               </div>
+              {real && askLiked && (
+                <div role="group" aria-label="Did you like it?" className="rounded-xl border border-teal/20 bg-cream/40 p-4">
+                  <p className="font-medium">Did you like it?</p>
+                  <p className="mt-1 text-[15px] text-plum">I&apos;ll save it as watched and use your answer for the next pick.</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <SecondaryButton onClick={() => alreadyWatched(true)}>👍 Yes, more like it</SecondaryButton>
+                    <SecondaryButton onClick={() => alreadyWatched(false)}>👎 Not really</SecondaryButton>
+                    <TextButton onClick={() => alreadyWatched(null)}>Skip</TextButton>
+                  </div>
+                </div>
+              )}
               {tutorialNotice && (
                 <div role="status" className="rounded-xl border border-brick/30 bg-sand p-4">
                   <p className="font-medium">That needs an account</p>
@@ -675,7 +781,7 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
                       </div>
                       <div className="min-w-0 flex-1 space-y-2">
                         <h2 className="font-display text-[22px] leading-tight">{m.title}</h2>
-                        <p className="text-[14px] text-plum">{m.year} · {m.runtime} min · Rated {m.rating} · ★ {m.score.toFixed(1)} sample score</p>
+                        <p className="text-[14px] text-plum">{m.year} · {m.runtime} min · Rated {m.rating} · ★ {(m.score ?? 0).toFixed(1)} sample score</p>
                         <p className="text-[14px]">
                           {m.availability.map((a) => `${serviceById(a.service).name} (${a.type === "subscription" ? "subscription" : a.type === "free" ? "free with ads" : "rent"})`).join(" · ")}
                         </p>
@@ -1237,7 +1343,7 @@ function HistoryList(props: {
                 <ul className="text-[14px] text-plum">
                   {events.map((e) => <li key={e.id}>{e.at} · {e.event}</li>)}
                 </ul>
-                <p className="text-[14px]">Audience: ★ {m.score.toFixed(1)} / 5 <span className="text-plum">(sample)</span></p>
+                <p className="text-[14px]">Audience: ★ {(m.score ?? 0).toFixed(1)} / 5 <span className="text-plum">(sample)</span></p>
                 <div className="flex flex-wrap items-center gap-x-6">
                   <Toggle
                     label="Watched"

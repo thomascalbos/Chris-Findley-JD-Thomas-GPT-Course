@@ -6,13 +6,13 @@ Product requirements and style guide | Version 0.4 | November 2, 2026
 
 ## What this version covers
 
-Version 0.4 is the build plan for the real CineMatch. It has 16 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
+Version 0.4 is the build plan for the real CineMatch. It has 18 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
 
 | Part | Contents |
 | --- | --- |
 | 1. Product | What viewers can do, and the rules each feature follows |
 | 2. Technical foundation | Hosting, movie data, login, matching, and success metrics |
-| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 16 stories by sprint |
+| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 18 stories by sprint |
 | 4. Style guide | Colors, type, layout, and voice |
 
 ---
@@ -194,9 +194,10 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
 | 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-10 | Not started |
-| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Chris | 2026-11-16 | In review |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 6: Alerts and proof | CM-18 | New movies and model upkeep | Foundation | M | Unassigned | 2026-11-16 | Not started |
 
 **Sizes:** S is about a day, M a few days, and L about a week.
 
@@ -465,7 +466,7 @@ Since CM-07, saving in Settings writes the services to the account, so they're k
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | L | CM-02 and confirmed TMDB terms | Unassigned | 2026-11-02 | Not started |
+| Foundation | L | CM-02 and confirmed TMDB terms | Chris | 2026-11-16 | In review |
 
 **Story:** As a viewer, I want to get picks similar to the movies I love so that I can enjoy my first pick more often.
 

@@ -248,6 +248,106 @@ for (const c of [...clusters].sort((a, b) => b.size - a.size)) lines.push(`${Str
 const noKeywords = movies.filter((m) => !rawFeatures(m).keyword.size).length;
 lines.push("", `Scenario 3: ${noKeywords} movies have no usable keywords; all ${N} still got a fingerprint, neighbors, and a cluster.`);
 
+// How the "similar movies" links connect ------------------------------------------------
+// Each movie links to its 10 nearest. Can you get from any movie to any other by
+// following those links?
+
+const out = neighbors.map((ns) => ns.map((n) => n.movie));
+const inn: number[][] = Array.from({ length: N }, () => []);
+out.forEach((ns, m) => ns.forEach((o) => inn[o].push(m)));
+const titleOf = (m: number) => `${movies[m].title} (${movies[m].year})`;
+
+// Linked at all, ignoring direction.
+const group = new Int32Array(N).fill(-1);
+const groupSizes: number[] = [];
+for (let s = 0; s < N; s++) {
+  if (group[s] >= 0) continue;
+  const g = groupSizes.length, stack = [s];
+  group[s] = g;
+  let size = 0;
+  while (stack.length) {
+    const m = stack.pop()!;
+    size++;
+    for (const o of [...out[m], ...inn[m]]) if (group[o] < 0) { group[o] = g; stack.push(o); }
+  }
+  groupSizes.push(size);
+}
+
+// Reachable both ways, following links forwards (Kosaraju, without recursion).
+const order: number[] = [];
+const seen = new Uint8Array(N);
+for (let s = 0; s < N; s++) {
+  if (seen[s]) continue;
+  const stack: [number, number][] = [[s, 0]];
+  seen[s] = 1;
+  while (stack.length) {
+    const top = stack[stack.length - 1];
+    if (top[1] < out[top[0]].length) {
+      const o = out[top[0]][top[1]++];
+      if (!seen[o]) { seen[o] = 1; stack.push([o, 0]); }
+    } else { order.push(top[0]); stack.pop(); }
+  }
+}
+const scc = new Int32Array(N).fill(-1);
+const sccSizes: number[] = [];
+for (let i = N - 1; i >= 0; i--) {
+  const s = order[i];
+  if (scc[s] >= 0) continue;
+  const c = sccSizes.length, stack = [s];
+  scc[s] = c;
+  let size = 0;
+  while (stack.length) { const m = stack.pop()!; size++; for (const o of inn[m]) if (scc[o] < 0) { scc[o] = c; stack.push(o); } }
+  sccSizes.push(size);
+}
+const core = sccSizes.indexOf(Math.max(...sccSizes));
+
+// Shortest chain of links from one movie to another.
+function path(from: number, to: number): number[] | null {
+  const prev = new Int32Array(N).fill(-1);
+  prev[from] = from;
+  const queue = [from];
+  for (let q = 0; q < queue.length; q++) {
+    const m = queue[q];
+    if (m === to) break;
+    for (const o of out[m]) if (prev[o] < 0) { prev[o] = m; queue.push(o); }
+  }
+  if (prev[to] < 0) return null;
+  const p = [to];
+  while (p[0] !== from) p.unshift(prev[p[0]]);
+  return p;
+}
+function hopsFrom(from: number): Int32Array {
+  const d = new Int32Array(N).fill(-1);
+  d[from] = 0;
+  const queue = [from];
+  for (let q = 0; q < queue.length; q++) for (const o of out[queue[q]]) if (d[o] < 0) { d[o] = d[queue[q]] + 1; queue.push(o); }
+  return d;
+}
+const coreMembers = [...scc.keys()].filter((m) => scc[m] === core);
+let hopTotal = 0, hopCount = 0, hopMax = 0;
+for (let i = 0; i < 200; i++) {
+  const d = hopsFrom(coreMembers[Math.floor(rand() * coreMembers.length)]);
+  for (const m of coreMembers) if (d[m] > 0) { hopTotal += d[m]; hopCount++; hopMax = Math.max(hopMax, d[m]); }
+}
+const neverLinked = inn.filter((x) => x.length === 0).length;
+const smallGroups = groupSizes.map((size, g) => ({ size, g })).filter((x) => x.size < N / 2).sort((a, b) => b.size - a.size);
+
+lines.push("", "How the similar-movie links connect:", "");
+lines.push(`- Linked at all (ignoring direction): ${groupSizes.length === 1 ? "every movie is in one connected web" : `${groupSizes.length} separate groups; the largest has ${Math.max(...groupSizes)} movies`}.`);
+for (const { size, g } of smallGroups.slice(0, 8)) {
+  const members = [...group.keys()].filter((m) => group[m] === g).slice(0, 4).map(titleOf);
+  lines.push(`    cut-off group of ${size}: ${members.join(" · ")}${size > 4 ? " …" : ""}`);
+}
+lines.push(`- Reachable both ways by following links forwards: ${coreMembers.length} movies (${((100 * coreMembers.length) / N).toFixed(1)}%).`);
+lines.push(`- Never in anyone's top 10 (you can leave them, but no link leads to them): ${neverLinked} movies (${((100 * neverLinked) / N).toFixed(1)}%).`);
+lines.push(`- Within that two-way web, getting from one movie to another takes ${(hopTotal / hopCount).toFixed(1)} links on average, ${hopMax} at most (200 sampled starts).`);
+for (const [a, b] of [["Toy Story", "The Godfather"], ["The Notebook", "Mad Max: Fury Road"], ["Spirited Away", "Get Out"]]) {
+  const from = movies.findIndex((m) => m.title === a), to = movies.findIndex((m) => m.title === b);
+  if (from < 0 || to < 0) continue;
+  const p = path(from, to);
+  lines.push(`    ${a} → ${b}: ${p ? `${p.length - 1} links: ${p.map((m) => movies[m].title).join(" → ")}` : "no chain of links"}`);
+}
+
 mkdirSync(new URL("../data/", import.meta.url), { recursive: true });
 const reportFile = new URL("../data/similarity-report.txt", import.meta.url);
 writeFileSync(reportFile, lines.join("\n"));

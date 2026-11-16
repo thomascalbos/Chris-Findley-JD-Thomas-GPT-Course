@@ -88,6 +88,7 @@ One movie at a time (CM-10). It shows:
 - **Why this one:** a concrete explanation tied to the viewer's answers and favorites, never generic praise
 - where to watch, with subscription, free-with-ads, and rental options labeled, plus when availability was last checked
 - **Watch:** opens the streaming service's website in a new tab
+- **Already watched:** one tap, then "Did you like it?" The movie is saved to the account as watched, and the answer steers the next pick (CM-10)
 - **Not this one:** asks why (seen it, wrong mood, dislike the genre, too intense, or something else), keeps every answer, and finds a different movie. "Seen it" marks the movie watched. A rejected movie never comes back in the same session.
 
 **Must haves are never bent silently.** If nothing meets every Must have, the viewer is told what the closest movie would miss, without its title, and sees it only if they agree. Otherwise they go back to change a preference.
@@ -99,6 +100,8 @@ One movie with no questions (CM-11), drawn from the viewer's services and favori
 ## History and ratings
 
 Past picks, newest first, with what happened to each: shown, rejected and why, or Watch clicked (CM-12). Viewers can mark movies watched and rate them 1 to 5 stars. Personal ratings are always shown separately from audience scores.
+
+Any movie can be logged as watched, not just picks: every movie's details page (reached through search, CM-06) has **I've watched this** with an optional star rating. History has a **Watched** list of everything logged, and picks never suggest a movie the viewer has marked watched.
 
 ## Alerts
 
@@ -189,9 +192,9 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-16 | Done |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Chris | 2026-11-16 | In review |
-| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Chris | 2026-11-16 | In progress |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
-| 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-12 | History and ratings | Feature | L | Unassigned | 2026-11-16 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
 | 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-10 | Not started |
 | 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Chris | 2026-11-16 | In review |
@@ -389,21 +392,22 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | L | CM-09 | Unassigned | 2026-11-02 | Not started |
+| Feature | L | CM-09, CM-14 | Chris | 2026-11-16 | In progress |
 
 **Story:** As a viewer, I want to get one movie with a clear reason, and a better one if I say no, so that I can stop browsing and start watching.
 
 **Scenarios:**
 
-1. **Given** I finished the quiz, **when** my pick appears, **then** it shows the movie's details, a "Why this one" that names my answers, and where to watch. Watch opens the service's website in a new tab.
-2. **Given** I have a pick, **when** I choose Not this one and then Seen it, **then** a different movie appears with my answers kept, and the first movie is marked watched and never shown again that session.
-3. **Given** I take the quiz twice with different answers (Horror, under 90 minutes, then Documentary, any length), **when** each pick appears, **then** the two picks are different movies.
+1. **Given** I take the quiz twice with the same answers, **when** each first pick appears, **then** both meet every Must have and show the movie's details, a "Why this one" that names my answers, and where to watch, but they can be different movies. Watch opens the service's website in a new tab.
+2. **Given** I have a pick, **when** I choose Not this one and then Wrong mood, **then** the next pick has a different mood but shares a genre with the one I turned down, my answers are kept, and the turned-down movie never comes back that session.
+3. **Given** I have a pick, **when** I tap Already watched and say I liked it, **then** it's saved to my account as watched, and the next pick is one of its close neighbors that I haven't watched.
 4. **Goes wrong:** **given** no movie meets all my Must haves, **when** the pick would appear, **then** I'm told what the closest movie misses without seeing its title, and I see it only if I agree.
 
 **Design notes for picking (Chris, 2026-11-16).** Rewrite the scenarios around these before building:
 
 - **Land with the quiz.** The quiz answers, favorites, and services set a "landing zone" of the movies that fit best. The first pick is drawn at random from that zone, with closer fits more likely. For example, answers that point at *Interstellar* could land on *Interstellar*, *Ad Astra*, or *Tenet*.
 - **Steer with feedback.** Each answer to a pick changes where the next jump goes. The **Not this one** reason sets the direction: "wrong mood" moves away in mood but stays close in genre, "dislike the genre" moves away in genre, "too intense" moves toward calmer movies, and "seen it" stays very close, since it was the right kind of movie. Consider asking "did you like it?" after **Seen it**, as a "more like this" signal. A **yes** ends the session, because the viewer starts watching.
+- **Already watched (added 2026-11-16).** A one-tap button on the pick, next to Watch and Not this one, then "Did you like it?" Liked it means the next jump stays close, since it was the right kind of movie. Didn't like it means jump further away. Save it to the account (not just the session), so CM-12 can show it in History and keep it out of future picks.
 - **Randomize the jump within limits.** Both the direction and the distance of each jump are random, but kept in a sensible range of similarity. Jumps follow the links in `movie_neighbors` (CM-14: each movie's 30 nearest movies, linked both ways, so every movie can be reached). A jump never breaks a Must have and never repeats a movie in the session.
 - **Record each session's random seed and jumps,** so CM-16 can replay sessions and compare them fairly with the plain rules.
 
@@ -427,15 +431,18 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-10 | Unassigned | 2026-11-02 | Not started |
+| Feature | L | CM-10 | Unassigned | 2026-11-16 | Not started |
 
-**Story:** As a viewer, I want to see my past picks, mark them watched, and rate them so that I can find last week's movie and teach CineMatch my taste.
+**Story:** As a viewer, I want to see my past picks, log what I've watched, and rate it so that I can find last week's movie and teach CineMatch my taste.
 
 **Scenarios:**
 
 1. **Given** I got two picks yesterday, **when** I open History, **then** both appear, newest first, with what I did with each: shown, rejected and why, or Watch clicked.
 2. **Given** I'm in History, **when** I rate a movie 4 stars, **then** my rating shows separately from the audience score and is still there after I log in again.
-3. **Goes wrong:** **given** my account is brand new, **when** I open History, **then** I see "Nothing here yet" with a link to the quiz.
+3. **Given** I watched *Dune* last month without CineMatch, **when** I open it from search and tap I've watched this and rate it 4 stars, **then** it appears in my Watched list and is never picked for me, in this session or later ones.
+4. **Goes wrong:** **given** my account is brand new, **when** I open History, **then** I see "Nothing here yet" with a link to the quiz.
+
+**Note (2026-11-16):** grew from M to L for logging any movie as watched. CM-10 already saves watched movies from its Already watched button; this story adds logging from a movie's details page, the Watched list, and keeping watched movies out of picks across sessions. Watched and highly rated movies are taste signals for CM-10's landing zone, like favorites.
 
 ### CM-13: Settings
 

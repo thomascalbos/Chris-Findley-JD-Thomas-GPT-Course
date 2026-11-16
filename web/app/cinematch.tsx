@@ -14,7 +14,7 @@ import { MatchCount } from "./match-count";
 import { MovieLookup, MovieSearch } from "./movie-search";
 import { loadNeighbors, loadPool, loadWatched, logPick, saveWatched } from "./picks";
 import { mustHaveFilter, quizFilter } from "./quiz-filter";
-import { jump, land, newSeed, seededRng, type Feedback, type Jump, type Rng } from "./walk";
+import { feedbackFilter, jump, land, newSeed, secondHop, seededRng, type Feedback, type Jump, type Rng } from "./walk";
 import { MOVIES, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
 import {
   Chip, Heading, Icon, MovieCard, Panel, Poster, PrimaryButton, SampleTag, SecondaryButton, Stars, TextButton, Toggle,
@@ -379,7 +379,15 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
     const neighbors = await loadNeighbors(pick.id).catch(() => []);
     const j = jump(pick, feedback, neighbors, eligible, s.rng);
     if (j) return showPick(j.pick.movie, why(j.pick.movie), exclude, j.jump);
-    const landed = land(eligible, s.rng)!;
+    // None of the similar movies qualifies (often after Wrong mood, since similar
+    // movies tend to share a mood): try the ones two jumps away.
+    const theirs = await Promise.all(neighbors.slice(0, 8).map((n) => loadNeighbors(n.id).catch(() => [])));
+    const j2 = jump(pick, feedback, secondHop(pick.id, neighbors, theirs), eligible, s.rng);
+    if (j2) return showPick(j2.pick.movie, why(j2.pick.movie), exclude, { ...j2.jump, hops: 2 });
+    // No similar movie qualifies: land again on the whole pool, still honoring the
+    // feedback (a different mood, a calmer movie) when anything does.
+    const keep = feedbackFilter(feedback, pick);
+    const landed = land(eligible.filter((r) => keep(r.movie)), s.rng) ?? land(eligible, s.rng)!;
     showPick(landed.movie, why(landed.movie), exclude, { from: pick.id, band: "landing", widened: true });
   }
 

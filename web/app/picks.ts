@@ -15,7 +15,7 @@ import type { Jump, Neighbor } from "./walk";
 export const POOL_LIMIT = 5000;
 const PAGE = 1000; // Supabase returns at most 1,000 rows per request
 
-const COLUMNS = "id, title, year, runtime, rating, score, genres, moods, attention, intensity, synopsis, poster, checked_at, movie_availability (service, type)";
+const COLUMNS = "id, title, year, runtime, rating, score, genres, moods, attention, intensity, synopsis, poster, checked_at, popularity, movie_availability (service, type)"; // popularity must be selected to sort by it
 
 type Row = {
   id: string; title: string; year: number; runtime: number; rating: Movie["rating"]; score: number | string | null;
@@ -30,18 +30,19 @@ const toMovie = (r: Row): Movie => ({
   synopsis: r.synopsis, poster: r.poster, checkedAt: r.checked_at, availability: r.movie_availability,
 });
 
+// The first page also says how many movies match; the rest load in parallel.
 export async function loadPool(mustHaves: QuizFilter): Promise<Movie[]> {
   const db = getSupabaseBrowser();
-  const movies: Movie[] = [];
-  for (let from = 0; from < POOL_LIMIT; from += PAGE) {
-    const { data, error } = await db.rpc("quiz_movies", { f: mustHaves }).select(COLUMNS)
+  const page = (from: number, count = false) =>
+    db.rpc("quiz_movies", { f: mustHaves }, count ? { count: "exact" } : {}).select(COLUMNS)
       .order("popularity", { ascending: false, nullsFirst: false }).order("id").range(from, from + PAGE - 1);
-    if (error) throw error;
-    const rows = data as unknown as Row[];
-    movies.push(...rows.map(toMovie));
-    if (rows.length < PAGE) break;
-  }
-  return movies;
+  const first = await page(0, true);
+  if (first.error) throw first.error;
+  const total = Math.min(first.count ?? 0, POOL_LIMIT);
+  const rest = await Promise.all(Array.from({ length: Math.max(0, Math.ceil(total / PAGE) - 1) }, (_, i) => page((i + 1) * PAGE)));
+  const failed = rest.find((r) => r.error);
+  if (failed?.error) throw failed.error;
+  return [first, ...rest].flatMap((r) => (r.data as unknown as Row[]).map(toMovie));
 }
 
 export async function loadWatched(): Promise<string[]> {

@@ -92,7 +92,16 @@ export function feedbackFilter(f: Feedback, from: Movie): (m: Movie) => boolean 
 }
 
 export type Neighbor = { id: string; rank: number; score: number };
-export type Jump = { from: string; band: Band | "landing"; rank?: number; score?: number; widened?: boolean };
+export type Jump = { from: string; band: Band | "landing"; rank?: number; score?: number; widened?: boolean; hops?: 2 };
+
+// Similar movies two jumps away, for when none of the direct ones qualifies.
+// They all count as "far" (rank 100 and up), in the order they were found.
+export function secondHop(from: string, direct: Neighbor[], theirs: Neighbor[][]): Neighbor[] {
+  const seen = new Set([from, ...direct.map((n) => n.id)]);
+  const out: Neighbor[] = [];
+  for (const list of theirs) for (const n of list) if (!seen.has(n.id)) { seen.add(n.id); out.push({ id: n.id, rank: 100 + out.length, score: n.score }); }
+  return out;
+}
 
 // The next pick after feedback on `from`. `eligible` is every movie that still
 // qualifies (meets the Must haves, not shown or watched), already scored by the

@@ -151,6 +151,7 @@ export function AvailabilityList({ movie, services }: { movie: Movie; services: 
 // Watch hands off to the service's home page in a new tab; it never claims a movie-level link.
 export function WatchLink({ movie, services, onWatch }: { movie: Movie; services: ServiceId[]; onWatch: (service: ServiceId) => void }) {
   const best = watchOptions(movie, services)[0];
+  if (!best) return null; // not on any of our services right now; the card says so
   const service = serviceById(best.service);
   return (
     <div>
@@ -164,7 +165,7 @@ export function WatchLink({ movie, services, onWatch }: { movie: Movie; services
         {best.type === "rent" ? "Rent" : "Watch"} on {service.name} <span aria-hidden>↗</span>
       </a>
       <p className="mt-1.5 text-[13px] text-plum">
-        Opens {service.name}&apos;s website in a new tab. Availability is sample data; search for the title there.
+        Opens {service.name}&apos;s website in a new tab. {movie.checkedAt ? "Search for the title there." : "Availability is sample data; search for the title there."}
       </p>
     </div>
   );

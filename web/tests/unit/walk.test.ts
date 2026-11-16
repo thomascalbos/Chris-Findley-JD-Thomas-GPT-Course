@@ -1,7 +1,7 @@
 // Unit tests (CM-10): landing and jumping, with made-up movies so the rules are easy to see.
 import { describe, expect, it } from "vitest";
 import type { Movie } from "@/app/movies";
-import { BANDS, bandOdds, jump, land, seededRng, type Neighbor, type Ranked } from "@/app/walk";
+import { BANDS, bandOdds, jump, land, secondHop, seededRng, type Neighbor, type Ranked } from "@/app/walk";
 
 const movie = (id: string, over: Partial<Movie> = {}): Movie => ({
   id, title: id, year: 2015, runtime: 110, rating: "PG-13", score: 4, genres: ["Sci-fi"], moods: ["Suspenseful"],
@@ -87,5 +87,13 @@ describe("jump", () => {
       ...[true, false, null].map((liked) => ({ kind: "already_watched" as const, liked })),
     ];
     for (const f of kinds) expect(Object.values(bandOdds(f)).reduce((a, b) => a + b, 0)).toBeCloseTo(1);
+  });
+});
+
+describe("secondHop", () => {
+  it("lists movies two jumps away once each, after the direct ones, skipping the start", () => {
+    const direct = [{ id: "a", rank: 1, score: 0.5 }, { id: "b", rank: 2, score: 0.4 }];
+    const theirs = [[{ id: "start", rank: 1, score: 0.5 }, { id: "c", rank: 2, score: 0.3 }, { id: "b", rank: 3, score: 0.3 }], [{ id: "c", rank: 1, score: 0.3 }, { id: "d", rank: 2, score: 0.2 }]];
+    expect(secondHop("start", direct, theirs)).toEqual([{ id: "c", rank: 100, score: 0.3 }, { id: "d", rank: 101, score: 0.2 }]);
   });
 });

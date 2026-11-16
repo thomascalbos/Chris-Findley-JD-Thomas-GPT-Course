@@ -6,13 +6,13 @@ Product requirements and style guide | Version 0.4 | November 2, 2026
 
 ## What this version covers
 
-Version 0.4 is the build plan for the real CineMatch. It has 16 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
+Version 0.4 is the build plan for the real CineMatch. It has 18 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
 
 | Part | Contents |
 | --- | --- |
 | 1. Product | What viewers can do, and the rules each feature follows |
 | 2. Technical foundation | Hosting, movie data, login, matching, and success metrics |
-| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 16 stories by sprint |
+| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 18 stories by sprint |
 | 4. Style guide | Colors, type, layout, and voice |
 
 ---
@@ -197,6 +197,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Chris | 2026-11-16 | In progress |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 6: Alerts and proof | CM-18 | New movies and model upkeep | Foundation | M | Unassigned | 2026-11-16 | Not started |
 
 **Sizes:** S is about a day, M a few days, and L about a week.
 
@@ -516,6 +517,27 @@ Test data comes from viewers' favorites and personal ratings (CM-07, CM-12), plu
 3. **Goes wrong:** **given** fewer than 20 test viewers, **when** the report runs, **then** it says the sample is too small to trust, instead of naming a winner.
 
 **Note (2026-11-16):** CM-10's picks are randomized (see its design notes). Compare the two versions over many replayed sessions using the seeds CM-10 records, not single picks.
+
+### CM-18: New movies and model upkeep
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | M | CM-04, CM-14 | Unassigned | 2026-11-16 | Not started |
+
+**Story:** As a viewer, I want new movies to show up once they qualify so that I can find and get picks from recent releases, not just the catalog as it was on day one.
+
+**Scenarios:**
+
+1. **Given** a movie newly passed 200 TMDB votes with a US rating of G to R, **when** the weekly refresh runs, **then** it's added and tagged, appears in search and the quiz, and gets a fingerprint, 30 two-way similar-movie links, and the closest existing cluster.
+2. **Given** a full rebuild runs, **when** it finishes, **then** every movie's details are fetched fresh from TMDB, the similarity model is rebuilt with new clusters and labels, and every result shows the date of the run.
+3. **Goes wrong:** **given** TMDB removed a movie or it no longer qualifies, **when** the refresh or rebuild runs, **then** it's taken out of search, the quiz, and the similar-movie links, but stays in viewers' history.
+
+**Notes (2026-11-16):**
+
+- **Weekly:** add the new step to the Monday workflow (CM-04). Look for movies that recently passed the bar, not only new releases, since most films reach 200 votes weeks or months after release. Slot each new movie into the existing model using the current word weights, without rebuilding.
+- **Full rebuild every few months:** refresh every movie's details and rerun `similarity.mts`. This also keeps us within TMDB's rule against storing data for more than 6 months without refreshing it.
+- **Clusters can be renumbered and relabelled by a rebuild.** Viewer data (history, ratings, CM-10 sessions) should point at movies, which keep stable ids like `tmdb-603`, never at cluster numbers.
+- **Version each model run** by its `computed_at` date, so CM-16 can replay sessions against the model they were recorded with.
 
 ## Ideas for later
 

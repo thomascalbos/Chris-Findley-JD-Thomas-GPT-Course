@@ -194,7 +194,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
 | 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-10 | Not started |
-| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Chris | 2026-11-16 | In progress |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
 
@@ -465,7 +465,7 @@ Since CM-07, saving in Settings writes the services to the account, so they're k
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | L | CM-02 and confirmed TMDB terms | Unassigned | 2026-11-02 | Not started |
+| Foundation | L | CM-02 and confirmed TMDB terms | Chris | 2026-11-16 | In progress |
 
 **Story:** As a viewer, I want to get picks similar to the movies I love so that I can enjoy my first pick more often.
 

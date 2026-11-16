@@ -21,6 +21,12 @@ type Question = {
 };
 
 export const CORE: QuestionKey[] = ["occasion", "genres", "time"];
+
+// Eras follow the PRD: recent is the last 2 years, then the last 10, counted from this year.
+const THIS_YEAR = new Date().getFullYear();
+export const ERA_YEARS = { recent: THIS_YEAR - 2, last10: THIS_YEAR - 10 };
+export const eraRange = (era: string): { minYear?: number; maxYear?: number } =>
+  era === "recent" ? { minYear: ERA_YEARS.recent } : era === "last10" ? { minYear: ERA_YEARS.last10 } : era === "older" ? { maxYear: ERA_YEARS.last10 - 1 } : {};
 export const MAX_FOLLOW_UPS = 4;
 
 export const QUESTIONS: Record<QuestionKey, Question> = {
@@ -63,7 +69,7 @@ export const QUESTIONS: Record<QuestionKey, Question> = {
   },
   minScore: {
     title: "Want a minimum audience score?",
-    help: "Sample audience scores on a 1-to-5-star scale.",
+    help: "TMDB viewers' average rating, on a 1-to-5-star scale.",
     options: [
       { value: "any", label: "No minimum" },
       { value: "3", label: "3+ stars" },
@@ -73,11 +79,10 @@ export const QUESTIONS: Record<QuestionKey, Question> = {
   },
   era: {
     title: "Any particular era?",
-    help: "Era boundaries are placeholders for this demo.",
     options: [
-      { value: "recent", label: "Recent releases (2024+)" },
-      { value: "last10", label: "Last 10 years (2016+)" },
-      { value: "older", label: "Older favorites (before 2016)" },
+      { value: "recent", label: `Recent releases (${ERA_YEARS.recent}+)` },
+      { value: "last10", label: `Last 10 years (${ERA_YEARS.last10}+)` },
+      { value: "older", label: `Older favorites (before ${ERA_YEARS.last10})` },
       { value: "any", label: "Any era" },
     ],
   },
@@ -152,10 +157,9 @@ export const NO_ADJUSTMENTS: Adjustments = { avoidGenres: [], avoidMoods: [] };
 type Criterion = { key: MustKey | "intensity"; weight: number; test: (m: Movie) => boolean; miss: (m: Movie) => string; bonus?: (m: Movie) => number };
 
 const lower = (s: string) => s.toLowerCase();
-const ERA_TEST: Record<string, (y: number) => boolean> = {
-  recent: (y) => y >= 2024,
-  last10: (y) => y >= 2016,
-  older: (y) => y < 2016,
+const eraTest = (era: string, y: number) => {
+  const { minYear = -Infinity, maxYear = Infinity } = eraRange(era);
+  return y >= minYear && y <= maxYear;
 };
 
 function criteria(answers: Answers, asked: QuestionKey[], services: ServiceId[], adj: Adjustments): Criterion[] {
@@ -190,7 +194,7 @@ function criteria(answers: Answers, asked: QuestionKey[], services: ServiceId[],
   });
   const era = val("era");
   if (era) out.push({
-    key: "era", weight: 2, test: (m) => ERA_TEST[era[0]](m.year),
+    key: "era", weight: 2, test: (m) => eraTest(era[0], m.year),
     miss: (m) => `it came out in ${m.year}, outside ${lower(optionLabel("era", era[0]))}`,
   });
   const attention = val("attention");

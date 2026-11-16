@@ -10,7 +10,9 @@ import {
 } from "./engine";
 import { MAX_FAVORITES, deleteSavedData, saveServicesToAccount, saveSetup, type Viewer } from "./account";
 import type { SearchHit } from "./catalog";
+import { MatchCount } from "./match-count";
 import { MovieLookup, MovieSearch } from "./movie-search";
+import { quizFilter } from "./quiz-filter";
 import { MOVIES, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
 import {
   Chip, Heading, Icon, MovieCard, Panel, Poster, PrimaryButton, SampleTag, SecondaryButton, Stars, TextButton, Toggle,
@@ -95,9 +97,10 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
       ? { services: [], favorites: [], ratings: {}, watchlist: [], watched: [] }
       : {
           services,
-          // The quiz still runs on the sample movies (until CM-09 and CM-10), so
-          // it can only use favorites from that catalog. Real ones are skipped.
-          favorites: favorites.map((f) => f.id).filter((id) => MOVIES.some((m) => m.id === id)),
+          // Saved favorites count as taste, so the quiz skips the audience-score
+          // question. Picks still come from the sample movies until CM-10, and
+          // the engine ignores favorites it can't find there.
+          favorites: favorites.map((f) => f.id),
           ratings: imported?.ratings ?? {},
           watchlist: imported?.watchlist ?? [],
           watched: [...new Set([...(imported?.watched ?? []), ...markedWatched])],
@@ -517,6 +520,7 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
                     />
                   </div>
                 )}
+                {!isTutorial && <MatchCount filter={quizFilter(answers, steps.slice(0, step + 1), services)} onServices={services.length > 0} />}
               </Panel>
 
               <SessionBar

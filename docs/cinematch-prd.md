@@ -151,7 +151,7 @@ Everything runs on free tiers, which the non-commercial terms allow.
 
 **Mood, attention, and intensity:** TMDB doesn't provide these, but the quiz needs them. CM-02 tags every movie using rules from its genres and keywords, and a person spot-checks a sample.
 
-**Freshness:** availability refreshes nightly (CM-04), and every movie shows when it was last checked.
+**Freshness:** availability refreshes weekly, every Monday (CM-04), and every movie shows when it was last checked.
 
 ## Matching
 
@@ -183,7 +183,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-09 | Done |
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | Done |
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
-| 2: Access | CM-04 | Nightly data refresh | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | In review |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-10 | Done |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-10 | In review |
@@ -292,19 +292,19 @@ These are the homework requirements every story and pull request follows.
 
 **Deleting an account keeps access:** because only approved emails can log in, Delete account (CM-08) wipes everything saved to the account (services, favorites, history, ratings, and alerts) and logs the viewer out, but keeps their email on the approved list. Logging in again starts them with an empty account. Since CM-07, it deletes the saved services and favorites from the database; history, ratings, and alerts are cleared in the app until CM-12 and CM-15 store them.
 
-### CM-04: Nightly data refresh
+### CM-04: Weekly data refresh
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | CM-02 | Unassigned | 2026-11-02 | Not started |
+| Foundation | M | CM-02 | Chris | 2026-11-16 | In review |
 
 **Story:** As a viewer, I want to see up-to-date streaming availability so that I can trust Watch to send me to a service that still has the movie.
 
 **Scenarios:**
 
-1. **Given** a movie left Netflix since yesterday, **when** the nightly refresh runs, **then** the movie no longer shows Netflix, and the change is recorded with its date.
-2. **Given** the refresh ran last night, **when** I view any movie, **then** I see "Availability checked" with last night's date.
-3. **Goes wrong:** **given** last night's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with a notification, and tonight's run catches up.
+1. **Given** a movie left Netflix since last week, **when** the weekly refresh runs, **then** the movie no longer shows Netflix, and the change is recorded with its date.
+2. **Given** the refresh ran this week, **when** I view any movie, **then** I see "Availability checked" with the date of that run.
+3. **Goes wrong:** **given** this week's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with an email to the team, and rerunning it from GitHub Actions catches up.
 
 ### CM-05: Tutorial
 
@@ -488,7 +488,7 @@ Since CM-07, saving in Settings writes the services to the account, so they're k
 **Scenarios:**
 
 1. **Given** I subscribe to Netflix, **when** I find a movie that isn't on Netflix and create an alert by email, **then** it shows as Waiting, with my paid services and delivery choice.
-2. **Given** I have a waiting alert, **when** the nightly refresh records the movie joining Netflix as part of the subscription, **then** I get exactly one email and one in-app notice with a Watch button, and the alert shows Triggered.
+2. **Given** I have a waiting alert, **when** the weekly refresh records the movie joining Netflix as part of the subscription, **then** I get exactly one email and one in-app notice with a Watch button, and the alert shows Triggered.
 3. **Goes wrong:** **given** I have a waiting alert, **when** the movie appears only as a rental or on Tubi, **then** no alert fires.
 4. **Goes wrong:** **given** I have no paid services saved, **when** I try to create an alert, **then** I'm told an alert needs a paid subscription.
 

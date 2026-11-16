@@ -183,7 +183,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-09 | Done |
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | Done |
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
-| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | In progress |
+| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | In review |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-10 | Done |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-10 | In review |
@@ -296,7 +296,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | CM-02 | Chris | 2026-11-16 | In progress |
+| Foundation | M | CM-02 | Chris | 2026-11-16 | In review |
 
 **Story:** As a viewer, I want to see up-to-date streaming availability so that I can trust Watch to send me to a service that still has the movie.
 

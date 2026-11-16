@@ -183,7 +183,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-09 | Done |
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | Done |
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
-| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | In review |
+| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | Done |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-10 | Done |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-16 | Done |
@@ -296,7 +296,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | CM-02 | Chris | 2026-11-16 | In review |
+| Foundation | M | CM-02 | Chris | 2026-11-16 | Done |
 
 **Story:** As a viewer, I want to see up-to-date streaming availability so that I can trust Watch to send me to a service that still has the movie.
 
@@ -304,7 +304,7 @@ These are the homework requirements every story and pull request follows.
 
 1. **Given** a movie left Netflix since last week, **when** the weekly refresh runs, **then** the movie no longer shows Netflix, and the change is recorded with its date.
 2. **Given** the refresh ran this week, **when** I view any movie, **then** I see "Availability checked" with the date of that run.
-3. **Goes wrong:** **given** this week's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with an email to the team, and rerunning it from GitHub Actions catches up.
+3. **Goes wrong:** **given** this week's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with an email to the team, and rerunning it from GitHub Actions catches up. *(Not yet seen in practice: no run has failed so far. Reruns are confirmed safe: a second run finds no changes and writes nothing twice. Confirm the first time a run fails.)*
 
 ### CM-05: Tutorial
 

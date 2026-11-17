@@ -260,7 +260,8 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
       const without = current.filter((v) => v !== q.exclusive);
       next = without.includes(value) ? without.filter((v) => v !== value) : without.length < q.multi ? [...without, value] : without;
     }
-    setAnswers({ ...answers, [key]: next });
+    const keepPrimary = key !== "genres" || (!!answers.primaryGenre && next.includes(answers.primaryGenre));
+    setAnswers({ ...answers, [key]: next, primaryGenre: keepPrimary ? answers.primaryGenre : undefined });
     if (isOpen(next)) setMust({ ...must, [key]: false });
   }
 
@@ -608,7 +609,22 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
                 {q.multi && value.length > 0 && !isOpen(value) && (
                   <p className="mt-2 text-[14px] text-plum" aria-live="polite">{value.length} of {q.multi} selected</p>
                 )}
-                {key !== "occasion" && (
+                {key === "genres" && !isOpen(value) && value.length > 1 && (
+                  <div className="mt-4">
+                    <p className="text-[14px] font-medium">Primary genre <span className="font-normal text-plum">(optional): every pick will include it</span></p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {value.map((g) => (
+                        <Chip key={g} selected={answers.primaryGenre === g} onClick={() => setAnswers({ ...answers, primaryGenre: answers.primaryGenre === g ? undefined : g })}>★ {g}</Chip>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {key === "genres" && !isOpen(value) && (
+                  <p className="mt-5 border-t border-teal/10 pt-4 text-[14px] text-plum">
+                    Genre is always a requirement: every pick will be {answers.primaryGenre && value.includes(answers.primaryGenre) ? answers.primaryGenre.toLowerCase() : value.map((g) => g.toLowerCase()).join(" or ")}.
+                  </p>
+                )}
+                {key !== "occasion" && key !== "genres" && (
                   <div className="mt-5 border-t border-teal/10 pt-4">
                     <Toggle
                       label="Must have"

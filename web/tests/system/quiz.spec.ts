@@ -46,19 +46,26 @@ test("CM-09: the quiz", async ({ page, context, baseURL }) => {
   });
 
   await test.step("Scenario 3: Must have turns on for a specific answer, and is disabled for Anything", async () => {
+    // Genre is always a requirement (CM-10), so the genre question has no Must
+    // have toggle; the time question does.
     await expect(page.getByText("Question 2 of 3")).toBeVisible();
+    await chip(page, "Anything").click();
     await chip(page, "Comedy").click();
+    await chip(page, "Adventure").click();
+    await expect(chip(page, "Anything")).toHaveAttribute("aria-pressed", "false"); // picking a genre clears Anything
+    await expect(mustHave(page)).toHaveCount(0);
+    await expect(page.getByText("Genre is always a requirement: every pick will be comedy or adventure.")).toBeVisible();
+    await next(page).click();
+
+    await expect(page.getByText("Question 3 of 3")).toBeVisible();
+    await chip(page, "Any length").click();
+    await expect(mustHave(page)).toBeDisabled();
+    await chip(page, "Under 2 hours").click();
     await mustHave(page).click();
     await expect(mustHave(page)).toHaveAttribute("aria-checked", "true");
     await expect(page.getByText("(on)", { exact: true })).toBeVisible();
-
-    await chip(page, "Anything").click();
-    await expect(mustHave(page)).toBeDisabled();
-
-    // Back to scenario 1's answers: picking a genre clears Anything.
-    await chip(page, "Comedy").click();
-    await chip(page, "Adventure").click();
-    await expect(chip(page, "Anything")).toHaveAttribute("aria-pressed", "false");
+    await mustHave(page).click(); // back off, for scenario 1's answers
+    await page.getByRole("button", { name: "Back" }).click();
     await next(page).click();
   });
 

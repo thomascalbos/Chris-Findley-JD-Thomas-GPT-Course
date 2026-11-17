@@ -8,7 +8,12 @@ import {
 export type QuestionKey = "occasion" | "genres" | "time" | "mood" | "ratings" | "minScore" | "era" | "attention";
 
 // Every answer is stored as a list of option values; single-choice questions hold one value.
-export type Answers = Partial<Record<QuestionKey, string[]>>;
+// primaryGenre: one of the chosen genres that every pick must include (optional).
+export type Answers = Partial<Record<QuestionKey, string[]>> & { primaryGenre?: string };
+
+// The primary genre only counts while it's still one of the chosen genres.
+export const primaryGenreOf = (answers: Answers): string | null =>
+  answers.primaryGenre && !isOpen(answers.genres) && answers.genres!.includes(answers.primaryGenre) ? answers.primaryGenre : null;
 export type MustKey = QuestionKey | "services";
 export type Must = Partial<Record<MustKey, boolean>>;
 
@@ -166,11 +171,15 @@ function criteria(answers: Answers, asked: QuestionKey[], services: ServiceId[],
   const out: Criterion[] = [];
   const val = (k: QuestionKey) => (asked.includes(k) && !isOpen(answers[k]) ? answers[k]! : null);
 
+  // Genre is always a requirement (rankPool treats it as a Must have). With a
+  // primary genre, every pick must include that one.
   const genres = val("genres");
+  const primary = primaryGenreOf(answers);
   if (genres) out.push({
-    key: "genres", weight: 8, test: (m) => m.genres.some((g) => genres.includes(g)),
+    key: "genres", weight: 8,
+    test: (m) => (primary ? m.genres.includes(primary as Genre) : m.genres.some((g) => genres.includes(g))),
     bonus: (m) => 1.5 * Math.max(0, m.genres.filter((g) => genres.includes(g)).length - 1), // covering more of the request fits better
-    miss: (m) => `it's ${m.genres.map(lower).join(" and ")}, not ${genres.map(lower).join(" or ")}`,
+    miss: (m) => primary ? `it isn't ${lower(primary)}` : `it's ${m.genres.map(lower).join(" and ")}, not ${genres.map(lower).join(" or ")}`,
   });
   const time = val("time");
   if (time) out.push({
@@ -261,7 +270,7 @@ export type Result =
 export function rankPool(input: RecommendInput, pool: Movie[] = MOVIES) {
   const { answers, asked, must, taste, services, includeRewatches, exclude, adjustments } = input;
   const all = criteria(answers, asked, services, adjustments);
-  const hard = all.filter((c) => c.key !== "intensity" && must[c.key as MustKey]);
+  const hard = all.filter((c) => c.key === "genres" || (c.key !== "intensity" && must[c.key as MustKey]));
   const flex = all.filter((c) => !hard.includes(c));
   const occasion = answers.occasion?.[0];
 

@@ -38,14 +38,14 @@ const next = (page: Page) => page.getByRole("button", { name: /^(Next|Next refin
 const pickTitle = (page: Page) => page.locator("h2").first();
 
 // Takes the quiz from Home. `follow` answers each follow-up question (by its title).
-async function takeQuiz(page: Page, core: { occasion: string; genres: string[]; mustGenre?: boolean; time: string; mustTime?: boolean },
+async function takeQuiz(page: Page, core: { occasion: string; genres: string[]; primary?: string; time: string; mustTime?: boolean },
   follow: (title: string) => Promise<void> = async () => { await page.locator("button[aria-pressed]").first().click(); }) {
   await page.goto("/");
   await page.getByRole("button", { name: "Find tonight's movie" }).click();
   await chip(page, core.occasion).click();
   await next(page).click();
   for (const g of core.genres) await chip(page, g).click();
-  if (core.mustGenre) await mustHave(page).click();
+  if (core.primary) await chip(page, `★ ${core.primary}`).click();
   await next(page).click();
   await chip(page, core.time).click();
   if (core.mustTime) await mustHave(page).click();
@@ -73,7 +73,7 @@ test("CM-10: recommendation and Not this one", async ({ page, context, baseURL }
   const db = await testA();
   await clearTestA(db);
   await logInAsTestA(context, baseURL!);
-  const scenario1 = { occasion: "Solo unwind", genres: ["Comedy", "Adventure"], mustGenre: true, time: "Under 2 hours" };
+  const scenario1 = { occasion: "Solo unwind", genres: ["Comedy", "Adventure"], time: "Under 2 hours" };
 
   await test.step("Scenario 1: same answers twice → both meet the Must have, show why and where to watch, and can differ", async () => {
     const titles: string[] = [];
@@ -127,7 +127,7 @@ test("CM-10: recommendation and Not this one", async ({ page, context, baseURL }
   });
 
   await test.step("Scenario 4: no movie meets every Must have → told what the closest misses, title hidden until I agree", async () => {
-    await takeQuiz(page, { occasion: "Solo unwind", genres: ["Horror"], mustGenre: true, time: "Under 90 minutes", mustTime: true }, async (title) => {
+    await takeQuiz(page, { occasion: "Solo unwind", genres: ["Horror"], time: "Under 90 minutes", mustTime: true }, async (title) => {
       if (/attention/i.test(title)) { await chip(page, "Background-friendly").click(); await mustHave(page).click(); }
       else await page.locator("button[aria-pressed]").last().click(); // "No preference" / "No minimum"
     });
@@ -137,6 +137,20 @@ test("CM-10: recommendation and Not this one", async ({ page, context, baseURL }
     await page.getByRole("button", { name: "Show me anyway" }).click();
     await expect(page.getByRole("heading", { name: "Here's your movie" })).toBeVisible();
     await expect(page.getByText(/It misses your Must have/)).toBeVisible();
+  });
+
+  await test.step("Genre is always required; with a primary genre, every pick includes it, through every jump", async () => {
+    await takeQuiz(page, { occasion: "Solo unwind", genres: ["Comedy", "Sci-fi"], primary: "Sci-fi", time: "Any length" });
+    await expect(page.getByRole("heading", { name: "Here's your movie" })).toBeVisible({ timeout: 20_000 });
+    for (const reason of ["Wrong mood", "Dislike the genre", "Something else"]) {
+      await page.getByRole("button", { name: "Not this one" }).click();
+      await page.getByRole("button", { name: reason }).click();
+      await expect(page.getByRole("heading", { name: "Here's your movie" })).toBeVisible({ timeout: 20_000 });
+    }
+    await expect.poll(async () => (await lastSession(db)).filter((e) => e.action === "shown").length).toBe(4);
+    const shown = await Promise.all((await lastSession(db)).filter((e) => e.action === "shown").map((e) => movie(db, e.movie_id)));
+    console.log(`Primary Sci-fi: ${shown.map((m) => `${m.title} [${m.genres}]`).join(" → ")}`);
+    for (const m of shown) expect(m.genres).toContain("Sci-fi");
   });
 
   await clearTestA(db);

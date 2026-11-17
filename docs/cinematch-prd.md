@@ -59,7 +59,7 @@ One question per screen, tap-based, with visible progress (CM-09).
 | Core question | Choices |
 | --- | --- |
 | 1 / Occasion | Solo unwind, date night, background watch, movie night, or surprise me |
-| 2 / Genre | Up to three of: comedy, drama, action, adventure, thriller, mystery, horror, romance, sci-fi, fantasy, animation, documentary. Or Anything. |
+| 2 / Genre | Up to three of: comedy, drama, action, adventure, thriller, mystery, horror, romance, sci-fi, fantasy, animation, documentary. Or Anything. With two or more, one can be marked the **primary genre**. |
 | 3 / Available time | Under 90 minutes, under 2 hours, under 2½ hours, or any length |
 
 Then up to four follow-ups, chosen by these rules and asked in this order:
@@ -77,6 +77,7 @@ Rules:
 - Never more than seven questions in total.
 - Progress shows the three core steps, then "Optional refinement 1 of N".
 - Any specific answer can be marked **Must have**; unmarked answers can flex.
+- **Genre is always a requirement** (no Must have toggle): every pick, including every pick after Not this one, has at least one chosen genre. If a **primary genre** is marked, every pick includes it (CM-10).
 - The viewer's services appear on every question with their own Must-have toggle, plus an **Include rewatches** toggle. Watched movies are skipped by default.
 - Back keeps earlier answers. There's no free text.
 
@@ -408,6 +409,7 @@ The tutorial reuses the current demo and its sample movies.
 - **Land with the quiz.** The quiz answers, favorites, and services set a "landing zone" of the movies that fit best. The first pick is drawn at random from that zone, with closer fits more likely. For example, answers that point at *Interstellar* could land on *Interstellar*, *Ad Astra*, or *Tenet*.
 - **Steer with feedback.** Each answer to a pick changes where the next jump goes. The **Not this one** reason sets the direction: "wrong mood" moves away in mood but stays close in genre, "dislike the genre" moves away in genre, "too intense" moves toward calmer movies, and "seen it" stays very close, since it was the right kind of movie. Consider asking "did you like it?" after **Seen it**, as a "more like this" signal. A **yes** ends the session, because the viewer starts watching.
 - **Already watched (added 2026-11-16).** A one-tap button on the pick, next to Watch and Not this one, then "Did you like it?" Liked it means the next jump stays close, since it was the right kind of movie. Didn't like it means jump further away. Save it to the account (not just the session), so CM-12 can show it in History and keep it out of future picks.
+- **Genre never changes (added 2026-11-16).** Genre is always a requirement, so a jump can't leave the chosen genres. With a primary genre, every pick includes it, for example every pick is sci-fi when Sci-fi is primary.
 - **Randomize the jump within limits.** Both the direction and the distance of each jump are random, but kept in a sensible range of similarity. Jumps follow the links in `movie_neighbors` (CM-14: each movie's 30 nearest movies, linked both ways, so every movie can be reached). A jump never breaks a Must have and never repeats a movie in the session.
 - **Record each session's random seed and jumps,** so CM-16 can replay sessions and compare them fairly with the plain rules.
 

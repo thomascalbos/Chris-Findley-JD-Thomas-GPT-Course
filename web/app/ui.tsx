@@ -1,3 +1,5 @@
+import Image from "next/image";
+import { posterAt } from "./catalog";
 import { availabilityLabel, fmtRuntime, watchOptions } from "./engine";
 import { serviceById, type Movie, type ServiceId } from "./movies";
 
@@ -90,10 +92,17 @@ const POSTERS = [
 
 export function Poster({ movie, size = "lg" }: { movie: Movie; size?: "sm" | "lg" }) {
   const small = size === "sm";
+  // Real movies (CM-10) have TMDB poster URLs; sample movies get a drawn one.
+  if (typeof movie.poster === "string") {
+    return small
+      ? <Image src={posterAt(movie.poster, "w92")} alt="" width={64} height={96} unoptimized className="h-24 w-16 shrink-0 rounded-xl object-cover" />
+      : <Image src={posterAt(movie.poster, "w342")} alt={`Poster for ${movie.title}`} width={192} height={288} unoptimized className="aspect-[2/3] w-full max-w-48 rounded-xl object-cover" />;
+  }
+  const palette = POSTERS[(typeof movie.poster === "number" ? movie.poster : movie.title.length) % POSTERS.length];
   return (
     <div
       aria-hidden
-      className={`relative flex shrink-0 flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br ${POSTERS[movie.poster % POSTERS.length]} ${
+      className={`relative flex shrink-0 flex-col justify-between overflow-hidden rounded-xl bg-gradient-to-br ${palette} ${
         small ? "h-24 w-16 p-1.5" : "aspect-[2/3] w-full max-w-48 p-3"
       }`}
     >
@@ -114,7 +123,11 @@ export function Meta({ movie }: { movie: Movie }) {
     <p className="text-[14px] text-plum">
       {movie.year} · {fmtRuntime(movie.runtime)} · Rated {movie.rating} · {movie.genres.join(", ")}
       <br />
-      <span className="font-medium">★ {movie.score.toFixed(1)} / 5</span> sample audience score
+      {movie.checkedAt ? (
+        <><span className="font-medium">{movie.score === null ? "Not enough ratings yet" : `★ ${movie.score.toFixed(1)} / 5`}</span> audience score (TMDB)</>
+      ) : (
+        <><span className="font-medium">★ {(movie.score ?? 0).toFixed(1)} / 5</span> sample audience score</>
+      )}
     </p>
   );
 }
@@ -138,6 +151,7 @@ export function AvailabilityList({ movie, services }: { movie: Movie; services: 
 // Watch hands off to the service's home page in a new tab; it never claims a movie-level link.
 export function WatchLink({ movie, services, onWatch }: { movie: Movie; services: ServiceId[]; onWatch: (service: ServiceId) => void }) {
   const best = watchOptions(movie, services)[0];
+  if (!best) return null; // not on any of our services right now; the card says so
   const service = serviceById(best.service);
   return (
     <div>
@@ -151,7 +165,7 @@ export function WatchLink({ movie, services, onWatch }: { movie: Movie; services
         {best.type === "rent" ? "Rent" : "Watch"} on {service.name} <span aria-hidden>↗</span>
       </a>
       <p className="mt-1.5 text-[13px] text-plum">
-        Opens {service.name}&apos;s website in a new tab. Availability is sample data; search for the title there.
+        Opens {service.name}&apos;s website in a new tab. {movie.checkedAt ? "Search for the title there." : "Availability is sample data; search for the title there."}
       </p>
     </div>
   );
@@ -176,9 +190,15 @@ export function MovieCard({ movie, services, children, rationale, sampleMovie = 
         )}
         <div>
           <p className="mb-1.5 flex items-center gap-2 text-[14px] font-medium">
-            Where to watch (US) <SampleTag />
+            Where to watch (US) {!movie.checkedAt && <SampleTag />}
           </p>
           <AvailabilityList movie={movie} services={services} />
+          {movie.checkedAt && (
+            <p className="mt-1.5 text-[13px] text-plum">
+              {movie.availability.length ? "" : "Not streaming on our services right now. "}
+              Availability checked {new Date(movie.checkedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}. Streaming data from JustWatch.
+            </p>
+          )}
         </div>
         {children}
       </div>

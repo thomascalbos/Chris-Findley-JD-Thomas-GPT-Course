@@ -192,7 +192,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-16 | Done |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Chris | 2026-11-16 | In review |
-| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Chris | 2026-11-16 | In progress |
+| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Chris | 2026-11-16 | In review |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
 | 5: Remember and learn | CM-12 | History and ratings | Feature | L | Unassigned | 2026-11-16 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
@@ -392,7 +392,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | L | CM-09, CM-14 | Chris | 2026-11-16 | In progress |
+| Feature | L | CM-09, CM-14 | Chris | 2026-11-16 | In review |
 
 **Story:** As a viewer, I want to get one movie with a clear reason, and a better one if I say no, so that I can stop browsing and start watching.
 

@@ -8,7 +8,12 @@ import {
 export type QuestionKey = "occasion" | "genres" | "time" | "mood" | "ratings" | "minScore" | "era" | "attention";
 
 // Every answer is stored as a list of option values; single-choice questions hold one value.
-export type Answers = Partial<Record<QuestionKey, string[]>>;
+// primaryGenre: one of the chosen genres that every pick must include (optional).
+export type Answers = Partial<Record<QuestionKey, string[]>> & { primaryGenre?: string };
+
+// The primary genre only counts while it's still one of the chosen genres.
+export const primaryGenreOf = (answers: Answers): string | null =>
+  answers.primaryGenre && !isOpen(answers.genres) && answers.genres!.includes(answers.primaryGenre) ? answers.primaryGenre : null;
 export type MustKey = QuestionKey | "services";
 export type Must = Partial<Record<MustKey, boolean>>;
 
@@ -166,11 +171,15 @@ function criteria(answers: Answers, asked: QuestionKey[], services: ServiceId[],
   const out: Criterion[] = [];
   const val = (k: QuestionKey) => (asked.includes(k) && !isOpen(answers[k]) ? answers[k]! : null);
 
+  // Genre is always a requirement (rankPool treats it as a Must have). With a
+  // primary genre, every pick must include that one.
   const genres = val("genres");
+  const primary = primaryGenreOf(answers);
   if (genres) out.push({
-    key: "genres", weight: 8, test: (m) => m.genres.some((g) => genres.includes(g)),
+    key: "genres", weight: 8,
+    test: (m) => (primary ? m.genres.includes(primary as Genre) : m.genres.some((g) => genres.includes(g))),
     bonus: (m) => 1.5 * Math.max(0, m.genres.filter((g) => genres.includes(g)).length - 1), // covering more of the request fits better
-    miss: (m) => `it's ${m.genres.map(lower).join(" and ")}, not ${genres.map(lower).join(" or ")}`,
+    miss: (m) => primary ? `it isn't ${lower(primary)}` : `it's ${m.genres.map(lower).join(" and ")}, not ${genres.map(lower).join(" or ")}`,
   });
   const time = val("time");
   if (time) out.push({
@@ -189,8 +198,8 @@ function criteria(answers: Answers, asked: QuestionKey[], services: ServiceId[],
   });
   const minScore = val("minScore");
   if (minScore) out.push({
-    key: "minScore", weight: 2, test: (m) => m.score >= Number(minScore[0]),
-    miss: (m) => `its sample audience score is ${m.score} of 5, under your ${minScore[0]}-star minimum`,
+    key: "minScore", weight: 2, test: (m) => m.score !== null && m.score >= Number(minScore[0]),
+    miss: (m) => (m.score === null ? "it doesn't have enough audience ratings yet" : `its audience score is ${m.score} of 5, under your ${minScore[0]}-star minimum`),
   });
   const era = val("era");
   if (era) out.push({
@@ -256,36 +265,46 @@ export type Result =
   | { kind: "nearmiss"; movie: Movie; misses: string[]; missedKeys: MustKey[] }
   | { kind: "empty" };
 
-export function recommend(input: RecommendInput): Result {
+// Scores movies against the answers. `pool` defaults to the sample movies (the
+// tutorial); real picks pass the catalog movies that meet the Must haves (CM-10).
+export function rankPool(input: RecommendInput, pool: Movie[] = MOVIES) {
   const { answers, asked, must, taste, services, includeRewatches, exclude, adjustments } = input;
   const all = criteria(answers, asked, services, adjustments);
-  const hard = all.filter((c) => c.key !== "intensity" && must[c.key as MustKey]);
+  const hard = all.filter((c) => c.key === "genres" || (c.key !== "intensity" && must[c.key as MustKey]));
   const flex = all.filter((c) => !hard.includes(c));
   const occasion = answers.occasion?.[0];
 
-  const pool = MOVIES.filter((m) => !exclude.includes(m.id) && (includeRewatches || !taste.watched.includes(m.id)));
-  if (!pool.length) return { kind: "empty" };
-
-  const rank = (m: Movie) =>
+  const open = pool.filter((m) => !exclude.includes(m.id) && (includeRewatches || !taste.watched.includes(m.id)));
+  const fit = (m: Movie) =>
     all.reduce((s, c) => s + (c.test(m) ? (flex.includes(c) ? c.weight : 0) + (c.bonus?.(m) ?? 0) : 0), 0) +
     tasteSignal(m, taste).bonus +
     occasionBonus(m, occasion) -
     4 * m.genres.filter((g) => adjustments.avoidGenres.includes(g)).length -
-    3 * m.moods.filter((x) => adjustments.avoidMoods.includes(x)).length +
-    m.score * 0.3;
+    3 * m.moods.filter((x) => adjustments.avoidMoods.includes(x)).length;
+  // Audience score isn't part of fit: real picks skew toward it when drawing
+  // (scoreWeight in walk.ts); the tutorial's fixed picks add it below.
+  const eligible = open.filter((m) => hard.every((c) => c.test(m))).map((movie) => ({ movie, fit: fit(movie) })).sort((a, b) => b.fit - a.fit);
 
-  const eligible = pool.filter((m) => hard.every((c) => c.test(m))).sort((a, b) => rank(b) - rank(a));
-  if (eligible.length) {
-    // "Surprise me" picks among the top few so the same answers don't always land on one title.
-    const movie = occasion === "surprise" ? eligible[Math.floor(Math.random() * Math.min(3, eligible.length))] : eligible[0];
-    return { kind: "pick", movie, rationale: rationale(movie, answers, asked, taste, services, flex) };
-  }
+  // Nothing meets every Must have: the closest candidate and what it would miss.
+  const nearMiss = (): Result => {
+    if (!open.length) return { kind: "empty" };
+    const misses = (m: Movie) => hard.filter((c) => !c.test(m));
+    const closest = [...open].sort((a, b) => misses(a).length - misses(b).length || fit(b) - fit(a))[0];
+    const missed = misses(closest);
+    return { kind: "nearmiss", movie: closest, misses: missed.map((c) => c.miss(closest)), missedKeys: missed.map((c) => c.key as MustKey) };
+  };
+  const why = (m: Movie) => rationale(m, answers, asked, taste, services, flex);
+  return { eligible, nearMiss, why };
+}
 
-  // Nothing meets every Must have: find the closest candidate and explain what it would miss.
-  const misses = (m: Movie) => hard.filter((c) => !c.test(m));
-  const closest = [...pool].sort((a, b) => misses(a).length - misses(b).length || rank(b) - rank(a))[0];
-  const missed = misses(closest);
-  return { kind: "nearmiss", movie: closest, misses: missed.map((c) => c.miss(closest)), missedKeys: missed.map((c) => c.key as MustKey) };
+export function recommend(input: RecommendInput): Result {
+  const ranked = rankPool(input);
+  const { nearMiss, why } = ranked;
+  const eligible = ranked.eligible.map((r) => ({ ...r, fit: r.fit + (r.movie.score ?? 0) * 0.3 })).sort((a, b) => b.fit - a.fit);
+  if (!eligible.length) return nearMiss();
+  // "Surprise me" picks among the top few so the same answers don't always land on one title.
+  const movie = input.answers.occasion?.[0] === "surprise" ? eligible[Math.floor(Math.random() * Math.min(3, eligible.length))].movie : eligible[0].movie;
+  return { kind: "pick", movie, rationale: why(movie) };
 }
 
 const ATTENTION_ADJ = { background: "A low-effort", easy: "An easygoing", absorbing: "A fully absorbing" } as const;
@@ -325,7 +344,7 @@ export function randomPick(taste: Taste, includeRewatches: boolean, exclude: str
   if (!pool.length) return null;
   const personal = taste.services.length > 0 || hasTaste(taste);
   if (!personal) return { movie: pool[Math.floor(Math.random() * pool.length)], personal };
-  const score = (m: Movie) => (taste.services.length && onServices(m, taste.services) ? 4 : 0) + tasteSignal(m, taste).bonus + m.score * 0.3;
+  const score = (m: Movie) => (taste.services.length && onServices(m, taste.services) ? 4 : 0) + tasteSignal(m, taste).bonus + (m.score ?? 0) * 0.3;
   const top = [...pool].sort((a, b) => score(b) - score(a)).slice(0, 6);
   return { movie: top[Math.floor(Math.random() * top.length)], personal };
 }

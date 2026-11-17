@@ -41,14 +41,15 @@ export type Movie = {
   year: number;
   runtime: number; // minutes
   rating: Rating;
-  score: number; // sample audience score out of 5
+  score: number | null; // audience score out of 5; null = "Not enough ratings yet" (real movies only)
   genres: Genre[];
   moods: Mood[];
   attention: Attention;
   intensity: 1 | 2 | 3;
   synopsis: string;
   availability: Availability[];
-  poster: number; // index into the poster palette
+  poster: number | string | null; // sample movies: index into the poster palette; real movies: TMDB poster URL
+  checkedAt?: string; // real movies only (CM-10): when availability was last checked
 };
 
 const sub = (service: ServiceId): Availability => ({ service, type: "subscription" });

@@ -6,13 +6,13 @@ Product requirements and style guide | Version 0.4 | November 2, 2026
 
 ## What this version covers
 
-Version 0.4 is the build plan for the real CineMatch. It has 16 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
+Version 0.4 is the build plan for the real CineMatch. It has 18 stories, grouped into six sprints in dependency order: foundations first, features after. Anything not needed by those stories has been cut. The style guide is unchanged.
 
 | Part | Contents |
 | --- | --- |
 | 1. Product | What viewers can do, and the rules each feature follows |
 | 2. Technical foundation | Hosting, movie data, login, matching, and success metrics |
-| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 16 stories by sprint |
+| 3. Roadmap and stories | The roadmap tracker, the story and pull request format, and the 18 stories by sprint |
 | 4. Style guide | Colors, type, layout, and voice |
 
 ---
@@ -59,7 +59,7 @@ One question per screen, tap-based, with visible progress (CM-09).
 | Core question | Choices |
 | --- | --- |
 | 1 / Occasion | Solo unwind, date night, background watch, movie night, or surprise me |
-| 2 / Genre | Up to three of: comedy, drama, action, adventure, thriller, mystery, horror, romance, sci-fi, fantasy, animation, documentary. Or Anything. |
+| 2 / Genre | Up to three of: comedy, drama, action, adventure, thriller, mystery, horror, romance, sci-fi, fantasy, animation, documentary. Or Anything. With two or more, one can be marked the **primary genre**. |
 | 3 / Available time | Under 90 minutes, under 2 hours, under 2½ hours, or any length |
 
 Then up to four follow-ups, chosen by these rules and asked in this order:
@@ -77,6 +77,7 @@ Rules:
 - Never more than seven questions in total.
 - Progress shows the three core steps, then "Optional refinement 1 of N".
 - Any specific answer can be marked **Must have**; unmarked answers can flex.
+- **Genre is always a requirement** (no Must have toggle): every pick, including every pick after Not this one, has at least one chosen genre. If a **primary genre** is marked, every pick includes it (CM-10).
 - The viewer's services appear on every question with their own Must-have toggle, plus an **Include rewatches** toggle. Watched movies are skipped by default.
 - Back keeps earlier answers. There's no free text.
 
@@ -88,6 +89,7 @@ One movie at a time (CM-10). It shows:
 - **Why this one:** a concrete explanation tied to the viewer's answers and favorites, never generic praise
 - where to watch, with subscription, free-with-ads, and rental options labeled, plus when availability was last checked
 - **Watch:** opens the streaming service's website in a new tab
+- **Already watched:** one tap, then "Did you like it?" The movie is saved to the account as watched, and the answer steers the next pick (CM-10)
 - **Not this one:** asks why (seen it, wrong mood, dislike the genre, too intense, or something else), keeps every answer, and finds a different movie. "Seen it" marks the movie watched. A rejected movie never comes back in the same session.
 
 **Must haves are never bent silently.** If nothing meets every Must have, the viewer is told what the closest movie would miss, without its title, and sees it only if they agree. Otherwise they go back to change a preference.
@@ -99,6 +101,8 @@ One movie with no questions (CM-11), drawn from the viewer's services and favori
 ## History and ratings
 
 Past picks, newest first, with what happened to each: shown, rejected and why, or Watch clicked (CM-12). Viewers can mark movies watched and rate them 1 to 5 stars. Personal ratings are always shown separately from audience scores.
+
+Any movie can be logged as watched, not just picks: every movie's details page (reached through search, CM-06) has **I've watched this** with an optional star rating. History has a **Watched** list of everything logged, and picks never suggest a movie the viewer has marked watched.
 
 ## Alerts
 
@@ -183,20 +187,21 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 1: Data foundation | CM-01 | Database setup | Foundation | M | Chris | 2026-11-09 | Done |
 | 1: Data foundation | CM-02 | Movie data | Foundation | L | Chris | 2026-11-09 | Done |
 | 2: Access | CM-03 | Login | Foundation | M | Chris | 2026-11-09 | Done |
-| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | In review |
+| 2: Access | CM-04 | Weekly data refresh | Foundation | M | Chris | 2026-11-16 | Done |
 | 2: Access | CM-05 | Tutorial | Feature | M | Findley | 2026-11-09 | Done |
 | 3: Getting started | CM-06 | Movie search and details | Feature | M | Chris | 2026-11-10 | Done |
 | 3: Getting started | CM-07 | Account setup | Feature | M | Chris | 2026-11-16 | Done |
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
-| 4: The pick | CM-09 | The quiz | Feature | M | Chris | 2026-11-16 | In review |
-| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-09 | The quiz | Feature | M | Chris | 2026-11-16 | Done |
+| 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Chris | 2026-11-16 | In review |
 | 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
-| 5: Remember and learn | CM-12 | History and ratings | Feature | M | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-12 | History and ratings | Feature | L | Unassigned | 2026-11-16 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
 | 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-10 | Not started |
-| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Unassigned | 2026-11-02 | Not started |
+| 5: Remember and learn | CM-14 | Similarity model | Foundation | L | Chris | 2026-11-16 | In review |
 | 6: Alerts and proof | CM-15 | Alerts | Feature | L | Unassigned | 2026-11-02 | Not started |
 | 6: Alerts and proof | CM-16 | Similarity testing statistics | Foundation | M | Unassigned | 2026-11-02 | Not started |
+| 6: Alerts and proof | CM-18 | New movies and model upkeep | Foundation | M | Unassigned | 2026-11-16 | Not started |
 
 **Sizes:** S is about a day, M a few days, and L about a week.
 
@@ -296,7 +301,7 @@ These are the homework requirements every story and pull request follows.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | M | CM-02 | Chris | 2026-11-16 | In review |
+| Foundation | M | CM-02 | Chris | 2026-11-16 | Done |
 
 **Story:** As a viewer, I want to see up-to-date streaming availability so that I can trust Watch to send me to a service that still has the movie.
 
@@ -304,7 +309,7 @@ These are the homework requirements every story and pull request follows.
 
 1. **Given** a movie left Netflix since last week, **when** the weekly refresh runs, **then** the movie no longer shows Netflix, and the change is recorded with its date.
 2. **Given** the refresh ran this week, **when** I view any movie, **then** I see "Availability checked" with the date of that run.
-3. **Goes wrong:** **given** this week's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with an email to the team, and rerunning it from GitHub Actions catches up.
+3. **Goes wrong:** **given** this week's refresh failed, **when** the team checks GitHub Actions, **then** the run is marked failed with an email to the team, and rerunning it from GitHub Actions catches up. *(Not yet seen in practice: no run has failed so far. Reruns are confirmed safe: a second run finds no changes and writes nothing twice. Confirm the first time a run fails.)*
 
 ### CM-05: Tutorial
 
@@ -373,7 +378,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-02, CM-07 | Chris | 2026-11-16 | In review |
+| Feature | M | CM-02, CM-07 | Chris | 2026-11-16 | Done |
 
 **Story:** As a viewer, I want to answer a few quick questions about tonight so that I can get a pick that fits my mood and my time.
 
@@ -388,16 +393,25 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | L | CM-09 | Unassigned | 2026-11-02 | Not started |
+| Feature | L | CM-09, CM-14 | Chris | 2026-11-16 | In review |
 
 **Story:** As a viewer, I want to get one movie with a clear reason, and a better one if I say no, so that I can stop browsing and start watching.
 
 **Scenarios:**
 
-1. **Given** I finished the quiz, **when** my pick appears, **then** it shows the movie's details, a "Why this one" that names my answers, and where to watch. Watch opens the service's website in a new tab.
-2. **Given** I have a pick, **when** I choose Not this one and then Seen it, **then** a different movie appears with my answers kept, and the first movie is marked watched and never shown again that session.
-3. **Given** I take the quiz twice with different answers (Horror, under 90 minutes, then Documentary, any length), **when** each pick appears, **then** the two picks are different movies.
+1. **Given** I take the quiz twice with the same answers, **when** each first pick appears, **then** both meet every Must have and show the movie's details, a "Why this one" that names my answers, and where to watch, but they can be different movies. Watch opens the service's website in a new tab.
+2. **Given** I have a pick, **when** I choose Not this one and then Wrong mood, **then** the next pick has a different mood but shares a genre with the one I turned down, my answers are kept, and the turned-down movie never comes back that session.
+3. **Given** I have a pick, **when** I tap Already watched and say I liked it, **then** it's saved to my account as watched, and the next pick is one of its close neighbors that I haven't watched.
 4. **Goes wrong:** **given** no movie meets all my Must haves, **when** the pick would appear, **then** I'm told what the closest movie misses without seeing its title, and I see it only if I agree.
+
+**Design notes for picking (Chris, 2026-11-16).** Rewrite the scenarios around these before building:
+
+- **Land with the quiz.** The quiz answers, favorites, and services set a "landing zone" of the movies that fit best. The first pick is drawn at random from that zone, with closer fits more likely. For example, answers that point at *Interstellar* could land on *Interstellar*, *Ad Astra*, or *Tenet*.
+- **Steer with feedback.** Each answer to a pick changes where the next jump goes. The **Not this one** reason sets the direction: "wrong mood" moves away in mood but stays close in genre, "dislike the genre" moves away in genre, "too intense" moves toward calmer movies, and "seen it" stays very close, since it was the right kind of movie. Consider asking "did you like it?" after **Seen it**, as a "more like this" signal. A **yes** ends the session, because the viewer starts watching.
+- **Already watched (added 2026-11-16).** A one-tap button on the pick, next to Watch and Not this one, then "Did you like it?" Liked it means the next jump stays close, since it was the right kind of movie. Didn't like it means jump further away. Save it to the account (not just the session), so CM-12 can show it in History and keep it out of future picks.
+- **Genre never changes (added 2026-11-16).** Genre is always a requirement, so a jump can't leave the chosen genres. With a primary genre, every pick includes it, for example every pick is sci-fi when Sci-fi is primary.
+- **Randomize the jump within limits.** Both the direction and the distance of each jump are random, but kept in a sensible range of similarity. Jumps follow the links in `movie_neighbors` (CM-14: each movie's 30 nearest movies, linked both ways, so every movie can be reached). A jump never breaks a Must have and never repeats a movie in the session.
+- **Record each session's random seed and jumps,** so CM-16 can replay sessions and compare them fairly with the plain rules.
 
 ### CM-11: Random pick
 
@@ -419,15 +433,18 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | M | CM-10 | Unassigned | 2026-11-02 | Not started |
+| Feature | L | CM-10 | Unassigned | 2026-11-16 | Not started |
 
-**Story:** As a viewer, I want to see my past picks, mark them watched, and rate them so that I can find last week's movie and teach CineMatch my taste.
+**Story:** As a viewer, I want to see my past picks, log what I've watched, and rate it so that I can find last week's movie and teach CineMatch my taste.
 
 **Scenarios:**
 
 1. **Given** I got two picks yesterday, **when** I open History, **then** both appear, newest first, with what I did with each: shown, rejected and why, or Watch clicked.
 2. **Given** I'm in History, **when** I rate a movie 4 stars, **then** my rating shows separately from the audience score and is still there after I log in again.
-3. **Goes wrong:** **given** my account is brand new, **when** I open History, **then** I see "Nothing here yet" with a link to the quiz.
+3. **Given** I watched *Dune* last month without CineMatch, **when** I open it from search and tap I've watched this and rate it 4 stars, **then** it appears in my Watched list and is never picked for me, in this session or later ones.
+4. **Goes wrong:** **given** my account is brand new, **when** I open History, **then** I see "Nothing here yet" with a link to the quiz.
+
+**Note (2026-11-16):** grew from M to L for logging any movie as watched. CM-10 already saves watched movies from its Already watched button; this story adds logging from a movie's details page, the Watched list, and keeping watched movies out of picks across sessions. Watched and highly rated movies are taste signals for CM-10's landing zone, like favorites.
 
 ### CM-13: Settings
 
@@ -465,7 +482,7 @@ Since CM-07, saving in Settings writes the services to the account, so they're k
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Foundation | L | CM-02 and confirmed TMDB terms | Unassigned | 2026-11-02 | Not started |
+| Foundation | L | CM-02 and confirmed TMDB terms | Chris | 2026-11-16 | In review |
 
 **Story:** As a viewer, I want to get picks similar to the movies I love so that I can enjoy my first pick more often.
 
@@ -507,6 +524,35 @@ Test data comes from viewers' favorites and personal ratings (CM-07, CM-12), plu
 1. **Given** test viewers with favorites and ratings, **when** we hide some of their 4- and 5-star movies and run both versions, **then** a report compares how often each version ranks a hidden movie in its top 10, plus how varied the picks are.
 2. **Given** the similarity version ranks hidden movies higher without making picks less varied, **when** the team reviews the report, **then** similarity is switched on. Otherwise it stays off, and the report says why.
 3. **Goes wrong:** **given** fewer than 20 test viewers, **when** the report runs, **then** it says the sample is too small to trust, instead of naming a winner.
+
+**Note (2026-11-16):** CM-10's picks are randomized (see its design notes). Compare the two versions over many replayed sessions using the seeds CM-10 records, not single picks.
+
+### CM-18: New movies and model upkeep
+
+| Type | Size | Depends on | Assigned to | Last updated | Status |
+| --- | --- | --- | --- | --- | --- |
+| Foundation | M | CM-04, CM-14 | Unassigned | 2026-11-16 | Not started |
+
+**Story:** As a viewer, I want new movies to show up once they qualify so that I can find and get picks from recent releases, not just the catalog as it was on day one.
+
+**Scenarios:**
+
+1. **Given** a movie newly passed 200 TMDB votes with a US rating of G to R, **when** the weekly refresh runs, **then** it's added and tagged, appears in search and the quiz, and gets a fingerprint, 30 two-way similar-movie links, and the closest existing cluster.
+2. **Given** a full rebuild runs, **when** it finishes, **then** every movie's details are fetched fresh from TMDB, the similarity model is rebuilt with new clusters and labels, and every result shows the date of the run.
+3. **Goes wrong:** **given** TMDB removed a movie or it no longer qualifies, **when** the refresh or rebuild runs, **then** it's taken out of search, the quiz, and the similar-movie links, but stays in viewers' history.
+
+**Notes (2026-11-16):**
+
+- **Weekly:** add the new step to the Monday workflow (CM-04). Look for movies that recently passed the bar, not only new releases, since most films reach 200 votes weeks or months after release. Slot each new movie into the existing model using the current word weights, without rebuilding.
+- **Full rebuild every few months:** refresh every movie's details and rerun `similarity.mts`. This also keeps us within TMDB's rule against storing data for more than 6 months without refreshing it.
+- **Clusters can be renumbered and relabelled by a rebuild.** Viewer data (history, ratings, CM-10 sessions) should point at movies, which keep stable ids like `tmdb-603`, never at cluster numbers.
+- **Version each model run** by its `computed_at` date, so CM-16 can replay sessions against the model they were recorded with.
+
+## Ideas for later
+
+Not yet stories. Turn them into stories when the team agrees.
+
+- **Keep exploring (from CM-14, 2026-11-16).** Every movie can reach every other by jumping between similar movies, 4 jumps apart on average and 7 at most. That would support a "more like this" trail from any movie, or a game: get from *Toy Story* to *The Godfather* in as few jumps as possible.
 
 ---
 

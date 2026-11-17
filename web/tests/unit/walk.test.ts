@@ -1,7 +1,7 @@
 // Unit tests (CM-10): landing and jumping, with made-up movies so the rules are easy to see.
 import { describe, expect, it } from "vitest";
 import type { Movie } from "@/app/movies";
-import { BANDS, bandOdds, jump, land, secondHop, seededRng, type Neighbor, type Ranked } from "@/app/walk";
+import { BANDS, bandOdds, jump, land, scoreWeight, secondHop, seededRng, type Neighbor, type Ranked } from "@/app/walk";
 
 const movie = (id: string, over: Partial<Movie> = {}): Movie => ({
   id, title: id, year: 2015, runtime: 110, rating: "PG-13", score: 4, genres: ["Sci-fi"], moods: ["Suspenseful"],
@@ -95,5 +95,22 @@ describe("secondHop", () => {
     const direct = [{ id: "a", rank: 1, score: 0.5 }, { id: "b", rank: 2, score: 0.4 }];
     const theirs = [[{ id: "start", rank: 1, score: 0.5 }, { id: "c", rank: 2, score: 0.3 }, { id: "b", rank: 3, score: 0.3 }], [{ id: "c", rank: 1, score: 0.3 }, { id: "d", rank: 2, score: 0.2 }]];
     expect(secondHop("start", direct, theirs)).toEqual([{ id: "c", rank: 100, score: 0.3 }, { id: "d", rank: 101, score: 0.2 }]);
+  });
+});
+
+describe("audience score skew", () => {
+  it("a 5-star movie is 20 times as likely as an equally fitting 3-star one, about 4.5x per star", () => {
+    expect(scoreWeight(5) / scoreWeight(3)).toBeCloseTo(20);
+    expect(scoreWeight(4) / scoreWeight(3)).toBeCloseTo(Math.sqrt(20));
+    expect(scoreWeight(5) / scoreWeight(4)).toBeCloseTo(scoreWeight(4) / scoreWeight(3)); // same factor per star
+    expect(scoreWeight(null)).toBe(1); // "Not enough ratings yet" counts as 3 stars
+  });
+
+  it("shows up in the picks: equal fits, 5 stars beats 3 stars about 20 to 1", () => {
+    const pool = [ranked(movie("five", { score: 5 })), ranked(movie("three", { score: 3 }))];
+    let five = 0;
+    for (let s = 0; s < 4200; s++) if (land(pool, seededRng(s))!.movie.id === "five") five++;
+    expect(five / (4200 - five)).toBeGreaterThan(16);
+    expect(five / (4200 - five)).toBeLessThan(25);
   });
 });

@@ -271,8 +271,9 @@ export function rankPool(input: RecommendInput, pool: Movie[] = MOVIES) {
     tasteSignal(m, taste).bonus +
     occasionBonus(m, occasion) -
     4 * m.genres.filter((g) => adjustments.avoidGenres.includes(g)).length -
-    3 * m.moods.filter((x) => adjustments.avoidMoods.includes(x)).length +
-    (m.score ?? 0) * 0.3;
+    3 * m.moods.filter((x) => adjustments.avoidMoods.includes(x)).length;
+  // Audience score isn't part of fit: real picks skew toward it when drawing
+  // (scoreWeight in walk.ts); the tutorial's fixed picks add it below.
   const eligible = open.filter((m) => hard.every((c) => c.test(m))).map((movie) => ({ movie, fit: fit(movie) })).sort((a, b) => b.fit - a.fit);
 
   // Nothing meets every Must have: the closest candidate and what it would miss.
@@ -288,7 +289,9 @@ export function rankPool(input: RecommendInput, pool: Movie[] = MOVIES) {
 }
 
 export function recommend(input: RecommendInput): Result {
-  const { eligible, nearMiss, why } = rankPool(input);
+  const ranked = rankPool(input);
+  const { nearMiss, why } = ranked;
+  const eligible = ranked.eligible.map((r) => ({ ...r, fit: r.fit + (r.movie.score ?? 0) * 0.3 })).sort((a, b) => b.fit - a.fit);
   if (!eligible.length) return nearMiss();
   // "Surprise me" picks among the top few so the same answers don't always land on one title.
   const movie = input.answers.occasion?.[0] === "surprise" ? eligible[Math.floor(Math.random() * Math.min(3, eligible.length))].movie : eligible[0].movie;

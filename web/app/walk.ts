@@ -46,12 +46,25 @@ function draw<T>(items: T[], weight: (t: T) => number, rng: Rng): T | null {
 const TEMPERATURE = 2;
 export const LANDING_ZONE = 12;
 
-// The first pick: one of the best-fitting movies, at random.
+// Audience score skew: a 5-star movie is 20 times as likely to be picked as an
+// equally fitting 3-star one, and the odds fall by the same factor for every
+// star (about 4.5x per star). "Not enough ratings yet" counts as 3 stars.
+export const SCORE_SKEW = 20;
+export const scoreWeight = (score: number | null) => SCORE_SKEW ** (((score ?? 3) - 3) / 2);
+
+// How much a movie is worth when drawing a pick: its fit, plus its score skew
+// expressed in fit points, so weight = exp(fit / T) x scoreWeight.
+const pull = (r: Ranked) => r.fit + TEMPERATURE * Math.log(scoreWeight(r.movie.score));
+const drawPick = <T,>(items: T[], ranked: (t: T) => Ranked, rng: Rng) => {
+  const best = Math.max(...items.map((t) => pull(ranked(t))));
+  return draw(items, (t) => Math.exp((pull(ranked(t)) - best) / TEMPERATURE), rng);
+};
+
+// The first pick: one of the best movies by fit and score, at random.
 export function land(ranked: Ranked[], rng: Rng): Ranked | null {
-  const zone = [...ranked].sort((a, b) => b.fit - a.fit).slice(0, LANDING_ZONE);
+  const zone = [...ranked].sort((a, b) => pull(b) - pull(a)).slice(0, LANDING_ZONE);
   if (!zone.length) return null;
-  const best = zone[0].fit;
-  return draw(zone, (r) => Math.exp((r.fit - best) / TEMPERATURE), rng);
+  return drawPick(zone, (r) => r, rng);
 }
 
 // Feedback ----------------------------------------------------------------------------------
@@ -124,8 +137,7 @@ export function jump(from: Movie, feedback: Feedback, neighbors: Neighbor[], eli
   for (const band of order) {
     const pool = inBand(band);
     if (!pool.length) continue;
-    const best = Math.max(...pool.map((c) => c.ranked.fit));
-    const chosen = draw(pool, (c) => Math.exp((c.ranked.fit - best) / TEMPERATURE), rng)!;
+    const chosen = drawPick(pool, (c) => c.ranked, rng)!;
     return { pick: chosen.ranked, jump: { from: from.id, band, rank: chosen.rank, score: chosen.score, widened: band !== rolled || undefined } };
   }
   return null;

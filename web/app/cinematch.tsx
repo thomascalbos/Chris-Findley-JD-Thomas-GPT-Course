@@ -13,6 +13,7 @@ import type { SearchHit } from "./catalog";
 import { MatchCount } from "./match-count";
 import { MovieLookup, MovieSearch } from "./movie-search";
 import { loadNeighbors, loadPool, loadWatched, logPick, saveWatched } from "./picks";
+import { loadRandom, pickRandom, rankRandom, type RandomData } from "./random";
 import { mustHaveFilter, quizFilter } from "./quiz-filter";
 import { feedbackFilter, jump, land, newSeed, secondHop, seededRng, type Feedback, type Jump, type Rng } from "./walk";
 import { MOVIES, SERVICES, TRENDING_IDS, movieById, serviceById, type Movie, type ServiceId } from "./movies";
@@ -94,8 +95,10 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
   const real = !isTutorial && !!viewer && !!user;
 
   // Random page and alert draft
-  const [randomId, setRandomId] = useState<string | null>(null);
+  const [randomMovie, setRandomMovie] = useState<Movie | null>(null);
   const [randomPersonal, setRandomPersonal] = useState(false);
+  const [randomStatus, setRandomStatus] = useState<"idle" | "loading" | "failed">("idle");
+  const randomData = useRef<RandomData | null>(null); // loaded once per visit, so Another random pick doesn't refetch
   const [draftAlert, setDraftAlert] = useState<{ movieId: string; delivery: Delivery } | null>(null);
 
   // Delete account
@@ -218,8 +221,10 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
     setAlerts([]);
     setPending(null);
     setDraftAlert(null);
-    setRandomId(null);
+    setRandomMovie(null);
     setRandomPersonal(false);
+    setRandomStatus("idle");
+    randomData.current = null;
     setIncludeRewatches(false);
     setAnswers({});
     setMust({});
@@ -419,19 +424,45 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
   async function saveServices(next: ServiceId[]) {
     await saveServicesToAccount(next); // throws on failure, so Settings can say so
     setServices(next);
-    setRandomId(null);
+    setRandomMovie(null);
+    randomData.current = null;
   }
 
   function openRandom() {
-    if (!randomId) rollRandom();
+    if (!randomMovie) void rollRandom();
     go("random");
   }
 
-  function rollRandom() {
-    const r = randomPick(taste, includeRewatches, randomId ? [randomId] : []);
-    setRandomId(r?.movie.id ?? null);
-    setRandomPersonal(r?.personal ?? false);
-    if (r) addLog(r.movie.id, "Random pick");
+  // Signed-in viewers pick from the real catalog (CM-11); the tutorial and guests
+  // keep the sample movies, as the quiz does.
+  async function rollRandom() {
+    const current = randomMovie ? [randomMovie.id] : [];
+    if (!real) {
+      const r = randomPick(taste, includeRewatches, current);
+      setRandomMovie(r?.movie ?? null);
+      setRandomPersonal(r?.personal ?? false);
+      if (r) addLog(r.movie.id, "Random pick");
+      return;
+    }
+    if (!randomData.current) {
+      setRandomStatus("loading");
+      try {
+        randomData.current = await loadRandom(services, taste.favorites);
+      } catch {
+        setRandomStatus("failed");
+        return;
+      }
+    }
+    const d = randomData.current;
+    if (d.watched.length) setMarkedWatched((w) => [...new Set([...w, ...d.watched])]);
+    const personal = services.length > 0 || taste.favorites.length > 0;
+    const movie = pickRandom(rankRandom(d.pool, {
+      watched: [...taste.watched, ...d.watched], includeRewatches, exclude: current, favorites: taste.favorites, similar: d.similar, personal,
+    }));
+    setRandomMovie(movie);
+    setRandomPersonal(personal);
+    setRandomStatus("idle");
+    if (movie) addLog(movie.id, "Random pick");
   }
 
   const navActive = (v: View) => view === v || (v === "home" && ["questions", "pick", "reject", "nearmiss", "empty", "history"].includes(view));
@@ -762,7 +793,11 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
             <Heading
               eyebrow="Random pick"
               title="Feeling lucky?"
-              subtitle={randomPersonal ? "Picked from your saved taste and services. No questions asked." : "A broad sample pick. Add services and favorites in setup for a more personal one."}
+              subtitle={
+                randomPersonal ? "Picked from your saved taste and services. No questions asked."
+                : real ? "A well-rated movie on lots of services. Add your services and favorites in setup to make it personal."
+                : "A broad sample pick. Add services and favorites in setup for a more personal one."
+              }
             />
             <div className="mb-4">
               <Toggle
@@ -772,18 +807,25 @@ export default function CineMatch({ viewer, initialView = "home" }: { viewer: Vi
                 hint={taste.watched.length ? `${taste.watched.length} watched titles are skipped unless this is on.` : "Watched titles are skipped by default."}
               />
             </div>
-            {randomId ? (
-              <MovieCard movie={movieById(randomId)} services={services}>
-                <WatchLink movie={movieById(randomId)} services={services} onWatch={(s) => watch(movieById(randomId), s)} />
+            {randomStatus === "loading" ? (
+              <Panel><p role="status">Finding a random pick…</p></Panel>
+            ) : randomStatus === "failed" ? (
+              <Panel>
+                <p role="alert">Couldn&apos;t load movies. Check your connection and try again.</p>
+                <PrimaryButton className="mt-4" onClick={() => void rollRandom()}>Try again</PrimaryButton>
+              </Panel>
+            ) : randomMovie ? (
+              <MovieCard movie={randomMovie} services={services}>
+                <WatchLink movie={randomMovie} services={services} onWatch={(s) => watch(randomMovie, s)} />
                 <div className="flex flex-wrap gap-2">
-                  <PrimaryButton onClick={rollRandom}>Another random pick</PrimaryButton>
-                  {canNotify(movieById(randomId), services) && <SecondaryButton onClick={() => notify(randomId)}>Notify me</SecondaryButton>}
+                  <PrimaryButton onClick={() => void rollRandom()}>Another random pick</PrimaryButton>
+                  {canNotify(randomMovie, services) && <SecondaryButton onClick={() => notify(randomMovie.id)}>Notify me</SecondaryButton>}
                 </div>
               </MovieCard>
             ) : (
               <Panel>
                 <p>Nothing left to pick from. Try turning on Include rewatches.</p>
-                <PrimaryButton className="mt-4" onClick={rollRandom}>Try again</PrimaryButton>
+                <PrimaryButton className="mt-4" onClick={() => void rollRandom()}>Try again</PrimaryButton>
               </Panel>
             )}
           </div>

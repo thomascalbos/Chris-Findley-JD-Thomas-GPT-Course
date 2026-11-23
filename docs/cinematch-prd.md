@@ -194,7 +194,7 @@ Sprints run in dependency order: foundations first, features after. Stories in t
 | 3: Getting started | CM-08 | Delete account | Feature | S | jshannonuva | 2026-11-08 | Done |
 | 4: The pick | CM-09 | The quiz | Feature | M | Chris | 2026-11-16 | Done |
 | 4: The pick | CM-10 | Recommendation and "Not this one" | Feature | L | Chris | 2026-11-16 | In review |
-| 4: The pick | CM-11 | Random pick | Feature | S | Unassigned | 2026-11-02 | Not started |
+| 4: The pick | CM-11 | Random pick | Feature | S | thomascalbos | 2026-11-22 | In progress |
 | 5: Remember and learn | CM-12 | History and ratings | Feature | L | Unassigned | 2026-11-16 | Not started |
 | 5: Remember and learn | CM-13 | Settings | Feature | S | thomascalbos | 2026-11-09 | Done |
 | 5: Remember and learn | CM-17 | Edit favorites and keep settings | Feature | S | Unassigned | 2026-11-10 | Not started |
@@ -417,7 +417,7 @@ The tutorial reuses the current demo and its sample movies.
 
 | Type | Size | Depends on | Assigned to | Last updated | Status |
 | --- | --- | --- | --- | --- | --- |
-| Feature | S | CM-07 | Unassigned | 2026-11-02 | Not started |
+| Feature | S | CM-07 | thomascalbos | 2026-11-22 | In progress |
 
 **Story:** As a viewer too tired for questions, I want to get one random movie that fits my taste so that I can start watching right away.
 
